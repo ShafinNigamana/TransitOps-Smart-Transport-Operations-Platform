@@ -202,7 +202,7 @@ export function VehicleForm({ open, onOpenChange, onSuccess }: VehicleFormProps)
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="vehicle-cost">Acq. Cost ($)</Label>
+            <Label htmlFor="vehicle-cost">Acq. Cost (₹)</Label>
             <Input
               id="vehicle-cost"
               name="acquisitionCost"

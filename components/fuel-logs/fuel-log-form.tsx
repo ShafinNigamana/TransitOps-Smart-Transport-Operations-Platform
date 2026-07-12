@@ -160,7 +160,7 @@ export function FuelLogForm({
 
           <div className="space-y-1.5">
             <Label required htmlFor="fuelCost">
-              Cost ($ USD)
+              Cost (₹ INR)
             </Label>
             <Input
               id="fuelCost"

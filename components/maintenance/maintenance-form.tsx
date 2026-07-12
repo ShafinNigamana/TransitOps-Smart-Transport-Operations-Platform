@@ -175,7 +175,7 @@ export function MaintenanceForm({
 
         <div className="space-y-1.5">
           <Label required htmlFor="cost">
-            Cost ($ USD)
+            Cost (₹ INR)
           </Label>
           <Input
             id="cost"
