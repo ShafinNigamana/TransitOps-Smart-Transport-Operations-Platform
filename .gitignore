@@ -40,3 +40,6 @@ next-env.d.ts
 # Agent / IDE config
 .gemini/
 .agents/
+
+# Local seed files
+supabase_seed_demo.sql
