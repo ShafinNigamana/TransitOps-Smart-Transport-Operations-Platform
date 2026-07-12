@@ -16,8 +16,8 @@ export function KPICard({
   value,
   subtitle,
   icon: Icon,
-  iconColor = "text-blue-500",
-  iconBg = "bg-blue-500/10",
+  iconColor = "text-fleet-amber",
+  iconBg = "bg-fleet-amber/10",
   trend,
   children,
 }: KPICardProps) {

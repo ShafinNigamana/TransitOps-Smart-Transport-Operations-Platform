@@ -88,7 +88,7 @@ export function TabsTrigger({
       className={cn(
         "inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all duration-150 focus-visible:outline-none",
         isActive
-          ? "bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 shadow-xs font-semibold"
+          ? "bg-card text-neutral-900 dark:text-neutral-100 shadow-xs font-semibold"
           : "hover:text-neutral-900 dark:hover:text-neutral-200",
         className
       )}
@@ -100,7 +100,7 @@ export function TabsTrigger({
           className={cn(
             "ml-2 rounded-full px-2 py-0.5 text-xs font-semibold",
             isActive
-              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+              ? "bg-fleet-amber/15 text-fleet-amber"
               : "bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300"
           )}
         >

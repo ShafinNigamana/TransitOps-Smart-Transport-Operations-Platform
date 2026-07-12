@@ -35,11 +35,11 @@ interface DriverTableProps {
 }
 
 const DRIVER_STATUSES: { value: DriverStatus | "all"; label: string; color: string }[] = [
-  { value: "all", label: "All Statuses", color: "bg-neutral-500" },
-  { value: "available", label: "Available", color: "bg-emerald-500" },
-  { value: "on_trip", label: "On Trip", color: "bg-blue-500" },
-  { value: "off_duty", label: "Off Duty", color: "bg-neutral-400" },
-  { value: "suspended", label: "Suspended", color: "bg-rose-500" },
+  { value: "all", label: "All Statuses", color: "bg-muted-foreground" },
+  { value: "available", label: "Available", color: "bg-fleet-sage" },
+  { value: "on_trip", label: "On Trip", color: "bg-fleet-amber" },
+  { value: "off_duty", label: "Off Duty", color: "bg-muted-foreground" },
+  { value: "suspended", label: "Suspended", color: "bg-fleet-ochre" },
 ];
 
 const PAGE_SIZE = 10;
@@ -170,7 +170,7 @@ export function DriverTable({ initialDrivers }: DriverTableProps) {
             <SlidersHorizontal className="h-4 w-4" />
             Filters
             {activeFilterCount > 0 && (
-              <span className="ml-1 rounded-full bg-blue-500 px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">
+              <span className="ml-1 rounded-full bg-fleet-amber px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">
                 {activeFilterCount}
               </span>
             )}
@@ -213,7 +213,7 @@ export function DriverTable({ initialDrivers }: DriverTableProps) {
               onClick={() => {
                 setStatusFilter("all");
               }}
-              className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+              className="text-xs font-medium text-fleet-amber hover:underline cursor-pointer"
             >
               Clear all filters
             </button>
@@ -222,7 +222,7 @@ export function DriverTable({ initialDrivers }: DriverTableProps) {
       )}
 
       {/* Data Table */}
-      <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 overflow-hidden shadow-sm">
+      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
         <Table>
           <TableHeader>
             <TableRow className="bg-neutral-50 dark:bg-neutral-800/50 hover:bg-neutral-50 dark:hover:bg-neutral-800/50">

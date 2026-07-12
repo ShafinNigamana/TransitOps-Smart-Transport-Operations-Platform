@@ -42,7 +42,7 @@ export function TripTable({
   return (
     <div>
       {/* Desktop Table View */}
-      <div className="hidden md:block rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 overflow-hidden shadow-xs">
+      <div className="hidden md:block rounded-2xl border border-border bg-card overflow-hidden shadow-xs">
         <Table>
           <TableHeader>
             <TableRow>
@@ -74,7 +74,7 @@ export function TripTable({
 
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                    <div className="h-8 w-8 rounded-lg bg-fleet-amber/10 flex items-center justify-center text-fleet-amber">
                       <Truck className="h-4 w-4" />
                     </div>
                     <div>
@@ -149,7 +149,7 @@ export function TripTable({
         {trips.map((trip) => (
           <div
             key={trip.id}
-            className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4 shadow-xs space-y-3"
+            className="rounded-2xl border border-border bg-card p-4 shadow-xs space-y-3"
           >
             <div className="flex items-start justify-between gap-2">
               <div>
@@ -157,7 +157,7 @@ export function TripTable({
                   {trip.trip_code || trip.id}
                 </span>
                 <div className="flex items-center gap-1.5 font-semibold text-sm text-neutral-900 dark:text-neutral-100 mt-0.5">
-                  <MapPin className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                  <MapPin className="h-3.5 w-3.5 text-fleet-amber shrink-0" />
                   <span>{trip.source}</span>
                   <ArrowRight className="h-3.5 w-3.5 text-neutral-400" />
                   <span>{trip.destination}</span>
@@ -166,7 +166,7 @@ export function TripTable({
               <StatusBadge status={trip.status} />
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-xs rounded-xl bg-neutral-50 dark:bg-neutral-800/60 p-2.5">
+            <div className="grid grid-cols-2 gap-2 text-xs rounded-xl bg-secondary/30 p-2.5">
               <div>
                 <span className="text-neutral-500 dark:text-neutral-400 block">
                   Vehicle
@@ -204,7 +204,7 @@ export function TripTable({
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-1 border-t border-neutral-100 dark:border-neutral-800">
+            <div className="flex items-center justify-between pt-1 border-t border-border">
               <span className="text-xs text-neutral-400">
                 Created {formatDate(trip.created_at)}
               </span>

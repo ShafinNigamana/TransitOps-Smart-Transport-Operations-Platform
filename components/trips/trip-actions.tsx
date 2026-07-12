@@ -25,7 +25,6 @@ export function TripActions({
           size="sm"
           variant="default"
           onClick={() => onDispatch(trip.id)}
-          className="bg-blue-600 hover:bg-blue-500 text-white font-medium"
         >
           <Send className="h-3.5 w-3.5 mr-1" />
           Dispatch
