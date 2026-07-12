@@ -15,9 +15,10 @@ export function middleware(request: NextRequest) {
   }
 
   const isAuthRoute = pathname === "/login" || pathname === "/signup";
+  const isPublicRoute = pathname === "/" || isAuthRoute;
 
   if (!session) {
-    if (!isAuthRoute) {
+    if (!isPublicRoute) {
       const url = request.nextUrl.clone();
       url.pathname = "/login";
       return NextResponse.redirect(url);

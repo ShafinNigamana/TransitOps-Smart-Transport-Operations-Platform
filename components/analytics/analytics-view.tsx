@@ -241,7 +241,7 @@ export function AnalyticsView({ data, userRole = "driver" }: AnalyticsViewProps)
                       tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
                       axisLine={false}
                       tickLine={false}
-                      tickFormatter={(v) => `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+                      tickFormatter={(v) => `Rs. ${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
                     />
                     <Tooltip
                       contentStyle={{
