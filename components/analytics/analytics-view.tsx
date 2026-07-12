@@ -116,6 +116,36 @@ export function AnalyticsView({ data, userRole = "driver" }: AnalyticsViewProps)
 
   return (
     <div className="space-y-6">
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          aside,
+          header,
+          nav,
+          button,
+          .no-print,
+          [aria-label="Toggle theme"],
+          [aria-label="Open sidebar"],
+          [aria-label="Sign out"] {
+            display: none !important;
+          }
+          main,
+          .max-w-7xl,
+          .bg-card {
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+          }
+          body {
+            background: white !important;
+            color: black !important;
+          }
+        }
+      `}} />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -133,21 +163,32 @@ export function AnalyticsView({ data, userRole = "driver" }: AnalyticsViewProps)
           </p>
         </div>
 
-        {canExport && (
+        <div className="flex items-center gap-2 shrink-0 no-print">
+          {canExport && (
+            <Button
+              onClick={handleExportCSV}
+              variant="outline"
+              className="font-semibold cursor-pointer"
+              disabled={isExporting}
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-1.5" />
+              )}
+              Export CSV
+            </Button>
+          )}
+          
           <Button
-            onClick={handleExportCSV}
+            onClick={() => window.print()}
             variant="outline"
-            className="shrink-0 font-semibold cursor-pointer"
-            disabled={isExporting}
+            className="font-semibold cursor-pointer"
           >
-            {isExporting ? (
-              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4 mr-1.5" />
-            )}
-            Export Fleet CSV
+            <Download className="h-4 w-4 mr-1.5" />
+            Export PDF
           </Button>
-        )}
+        </div>
       </div>
 
       {/* KPI Cards */}

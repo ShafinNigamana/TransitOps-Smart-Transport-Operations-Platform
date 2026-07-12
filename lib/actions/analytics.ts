@@ -3,11 +3,50 @@
 import { pool } from "@/lib/db";
 import { calculateFleetUtilization } from "@/lib/utils";
 import type { ActionResult, FleetKPIs } from "@/types/database";
+import { cookies } from "next/headers";
 
 export async function getFleetKPIs(): Promise<ActionResult<FleetKPIs>> {
   try {
-    const vRes = await pool.query("SELECT status FROM public.vehicles");
-    const vehicleRows = vRes.rows;
+    const sessionCookie = (await cookies()).get("transitops_session");
+    let userRole = "driver";
+    let fullName = "";
+    let userEmail = "";
+    if (sessionCookie && sessionCookie.value) {
+      const payload = JSON.parse(Buffer.from(sessionCookie.value, "base64").toString("utf8"));
+      userRole = payload.userRole || "driver";
+      fullName = payload.fullName || "";
+      userEmail = payload.email || "";
+    }
+
+    let driverId: string | null = null;
+    if (userRole === "driver") {
+      const dRes = await pool.query("SELECT id FROM public.drivers WHERE full_name = $1", [fullName]);
+      if (dRes.rows.length > 0) {
+        driverId = dRes.rows[0].id;
+      } else if (fullName === "Driver" || userEmail === "driver@transitops.com") {
+        driverId = "22222222-2222-2222-2222-222222222222";
+      }
+    }
+
+    const vRes = await pool.query("SELECT id, status FROM public.vehicles");
+    let vehicleRows = vRes.rows;
+
+    const tRes = await pool.query("SELECT id, vehicle_id, driver_id, status FROM public.trips");
+    let tripRows = tRes.rows;
+
+    const drRes = await pool.query("SELECT id, status FROM public.drivers");
+    let driverRows = drRes.rows;
+
+    if (userRole === "driver" && driverId) {
+      // Filter trips to only their own
+      tripRows = tripRows.filter((t: any) => t.driver_id === driverId);
+      // Filter vehicles to only ones they have driven/are driving
+      const myVehicleIds = new Set(tripRows.map((t: any) => t.vehicle_id));
+      vehicleRows = vehicleRows.filter((v: any) => myVehicleIds.has(v.id));
+      // Filter drivers to only themself
+      driverRows = driverRows.filter((d: any) => d.id === driverId);
+    }
+
     const totalVehicles = vehicleRows.length;
     const activeVehicles = vehicleRows.filter((v: any) => v.status === "on_trip").length;
     const availableVehicles = vehicleRows.filter((v: any) => v.status === "available").length;
@@ -15,13 +54,9 @@ export async function getFleetKPIs(): Promise<ActionResult<FleetKPIs>> {
     const retiredVehicles = vehicleRows.filter((v: any) => v.status === "retired").length;
     const totalNonRetired = totalVehicles - retiredVehicles;
 
-    const tRes = await pool.query("SELECT status FROM public.trips");
-    const tripRows = tRes.rows;
     const activeTrips = tripRows.filter((t: any) => t.status === "dispatched").length;
     const pendingTrips = tripRows.filter((t: any) => t.status === "draft").length;
 
-    const dRes = await pool.query("SELECT status FROM public.drivers");
-    const driverRows = dRes.rows;
     const driversOnDuty = driverRows.filter((d: any) => d.status === "on_trip").length;
     const totalDrivers = driverRows.length;
 
@@ -65,16 +100,45 @@ export interface RecentTripRow {
 
 export async function getRecentTrips(): Promise<ActionResult<RecentTripRow[]>> {
   try {
-    const dbRes = await pool.query(
-      `SELECT t.id, t.source, t.destination, t.status, t.created_at, t.dispatched_at, t.completed_at, t.cancelled_at,
-              row_to_json(v) AS vehicle,
-              row_to_json(d) AS driver
-       FROM public.trips t
-       LEFT JOIN public.vehicles v ON t.vehicle_id = v.id
-       LEFT JOIN public.drivers d ON t.driver_id = d.id
-       ORDER BY t.created_at DESC
-       LIMIT 10`
-    );
+    const sessionCookie = (await cookies()).get("transitops_session");
+    let userRole = "driver";
+    let fullName = "";
+    let userEmail = "";
+    if (sessionCookie && sessionCookie.value) {
+      const payload = JSON.parse(Buffer.from(sessionCookie.value, "base64").toString("utf8"));
+      userRole = payload.userRole || "driver";
+      fullName = payload.fullName || "";
+      userEmail = payload.email || "";
+    }
+
+    let driverId: string | null = null;
+    if (userRole === "driver") {
+      const dRes = await pool.query("SELECT id FROM public.drivers WHERE full_name = $1", [fullName]);
+      if (dRes.rows.length > 0) {
+        driverId = dRes.rows[0].id;
+      } else if (fullName === "Driver" || userEmail === "driver@transitops.com") {
+        driverId = "22222222-2222-2222-2222-222222222222";
+      }
+    }
+
+    let queryStr = `
+      SELECT t.id, t.source, t.destination, t.status, t.created_at, t.dispatched_at, t.completed_at, t.cancelled_at,
+             row_to_json(v) AS vehicle,
+             row_to_json(d) AS driver
+      FROM public.trips t
+      LEFT JOIN public.vehicles v ON t.vehicle_id = v.id
+      LEFT JOIN public.drivers d ON t.driver_id = d.id
+    `;
+    let queryParams: any[] = [];
+
+    if (userRole === "driver" && driverId) {
+      queryStr += " WHERE t.driver_id = $1 ";
+      queryParams.push(driverId);
+    }
+
+    queryStr += " ORDER BY t.created_at DESC LIMIT 10 ";
+
+    const dbRes = await pool.query(queryStr, queryParams);
     return { success: true, data: dbRes.rows as unknown as RecentTripRow[] };
   } catch (error: any) {
     return {
@@ -132,24 +196,77 @@ export interface FleetAnalyticsSummary {
 
 export async function getFleetAnalyticsSummary(): Promise<ActionResult<FleetAnalyticsSummary>> {
   try {
+    const sessionCookie = (await cookies()).get("transitops_session");
+    let userRole = "driver";
+    let fullName = "";
+    let userEmail = "";
+    if (sessionCookie && sessionCookie.value) {
+      const payload = JSON.parse(Buffer.from(sessionCookie.value, "base64").toString("utf8"));
+      userRole = payload.userRole || "driver";
+      fullName = payload.fullName || "";
+      userEmail = payload.email || "";
+    }
+
+    let driverId: string | null = null;
+    if (userRole === "driver") {
+      const dRes = await pool.query("SELECT id FROM public.drivers WHERE full_name = $1", [fullName]);
+      if (dRes.rows.length > 0) {
+        driverId = dRes.rows[0].id;
+      } else if (fullName === "Driver" || userEmail === "driver@transitops.com") {
+        driverId = "22222222-2222-2222-2222-222222222222";
+      }
+    }
+
     const vRes = await pool.query("SELECT id, registration_number, name, status, acquisition_cost FROM public.vehicles");
-    const vehicleRows = vRes.rows;
+    let vehicleRows = vRes.rows;
+
+    let tripQuery = "SELECT id, vehicle_id, driver_id, actual_distance_km, fuel_consumed_l FROM public.trips WHERE status = 'completed'";
+    let tripParams: any[] = [];
+    if (userRole === "driver" && driverId) {
+      tripQuery = "SELECT id, vehicle_id, driver_id, actual_distance_km, fuel_consumed_l FROM public.trips WHERE status = 'completed' AND driver_id = $1";
+      tripParams.push(driverId);
+    }
+    const tRes = await pool.query(tripQuery, tripParams);
+    const tripRows = tRes.rows;
+
+    if (userRole === "driver" && driverId) {
+      const myVehicleIds = new Set(tripRows.map((t: any) => t.vehicle_id));
+      vehicleRows = vehicleRows.filter((v: any) => myVehicleIds.has(v.id));
+    }
 
     const activeVehicles = vehicleRows.filter((v: any) => v.status === "on_trip").length;
     const totalNonRetired = vehicleRows.filter((v: any) => v.status !== "retired").length;
     const fleetUtilizationPct = calculateFleetUtilization(activeVehicles, totalNonRetired);
 
-    const tRes = await pool.query("SELECT vehicle_id, actual_distance_km, fuel_consumed_l FROM public.trips WHERE status = 'completed'");
-    const tripRows = tRes.rows;
-
-    const fRes = await pool.query("SELECT vehicle_id, cost FROM public.fuel_logs");
+    let fuelQuery = "SELECT id, vehicle_id, trip_id, cost FROM public.fuel_logs";
+    let fuelParams: any[] = [];
+    if (userRole === "driver" && driverId) {
+      fuelQuery = "SELECT id, vehicle_id, trip_id, cost FROM public.fuel_logs WHERE trip_id IN (SELECT id FROM public.trips WHERE driver_id = $1)";
+      fuelParams.push(driverId);
+    }
+    const fRes = await pool.query(fuelQuery, fuelParams);
     const fuelLogRows = fRes.rows;
 
-    const mRes = await pool.query("SELECT vehicle_id, cost FROM public.maintenance");
-    const maintenanceRows = mRes.rows;
+    let maintenanceRows: any[] = [];
+    if (userRole !== "driver") {
+      const mRes = await pool.query("SELECT id, vehicle_id, cost FROM public.maintenance");
+      maintenanceRows = mRes.rows;
+    }
 
-    const eRes = await pool.query("SELECT vehicle_id, amount FROM public.expenses");
+    let expenseQuery = "SELECT id, vehicle_id, trip_id, amount FROM public.expenses";
+    let expenseParams: any[] = [];
+    if (userRole === "driver" && driverId) {
+      expenseQuery = "SELECT id, vehicle_id, trip_id, amount FROM public.expenses WHERE trip_id IN (SELECT id FROM public.trips WHERE driver_id = $1)";
+      expenseParams.push(driverId);
+    }
+    const eRes = await pool.query(expenseQuery, expenseParams);
     const expenseRows = eRes.rows;
+
+    if (userRole === "safety_officer") {
+      fuelLogRows.length = 0;
+      maintenanceRows.length = 0;
+      expenseRows.length = 0;
+    }
 
     const fuelEfficiency: FuelEfficiencyRow[] = [];
     const operationalCosts: OperationalCostRow[] = [];

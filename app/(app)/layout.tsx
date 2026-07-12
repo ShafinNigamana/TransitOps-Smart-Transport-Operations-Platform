@@ -58,6 +58,16 @@ export default function AppLayout({
 
   const logoSrc = mounted && resolvedTheme === "dark" ? "/logo-dark-v2.png" : "/logo-light-v2.png";
 
+  const visibleNavItems = navItems.filter((item) => {
+    if (userRole === "driver") {
+      return item.name !== "Maintenance";
+    }
+    if (userRole === "safety_officer") {
+      return item.name !== "Fuel Logs" && item.name !== "Expenses";
+    }
+    return true;
+  });
+
   // Load user profile on mount
   React.useEffect(() => {
     async function loadProfile() {
@@ -132,9 +142,8 @@ export default function AppLayout({
           </button>
         </div>
 
-        {/* Sidebar Navigation Links */}
         <nav className="flex-1 space-y-1 px-4 py-4 overflow-y-auto">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             const Icon = item.icon;
             return (
