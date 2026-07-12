@@ -1,4 +1,4 @@
-# 🚚 TransitOps — Smart Transport & Fleet Operations Cockpit
+# TransitOps — Smart Transport & Fleet Operations Cockpit
 
 TransitOps is a high-performance, production-grade logistics and fleet management cockpit built using Next.js 16 (App Router), Tailwind CSS, shadcn/ui, and Supabase PostgreSQL.
 
