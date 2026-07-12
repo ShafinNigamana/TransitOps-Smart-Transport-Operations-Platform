@@ -16,6 +16,8 @@ import { createVehicleSchema, type CreateVehicleInput } from "@/lib/validations/
 import { createVehicle } from "@/lib/actions/vehicles";
 import { Loader2 } from "lucide-react";
 
+import { toast } from "sonner";
+
 interface VehicleFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -94,13 +96,16 @@ export function VehicleForm({ open, onOpenChange, onSuccess }: VehicleFormProps)
     try {
       const result = await createVehicle(parsed.data);
       if (result.success) {
+        toast.success("Vehicle registered successfully");
         resetForm();
         onOpenChange(false);
         onSuccess?.();
       } else {
+        toast.error(result.error.message);
         setServerError(result.error.message);
       }
     } catch {
+      toast.error("An unexpected error occurred. Please try again.");
       setServerError("Something went wrong — please try again.");
     } finally {
       setIsSubmitting(false);

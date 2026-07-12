@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { cn } from "@/lib/utils";
 import { logout, demoLogin } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -86,10 +87,10 @@ export default function AppLayout({
 
   // Roles for RBAC switching
   const roles = [
-    { value: "fleet_manager", label: "Fleet Manager" },
-    { value: "driver", label: "Driver" },
-    { value: "safety_officer", label: "Safety Officer" },
-    { value: "financial_analyst", label: "Financial Analyst" },
+    { value: "fleet_manager", label: "● Fleet Manager" },
+    { value: "driver", label: "● Driver" },
+    { value: "safety_officer", label: "● Safety Officer" },
+    { value: "financial_analyst", label: "● Financial Analyst" },
   ];
 
   const handleRoleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -124,11 +125,11 @@ export default function AppLayout({
         <div className="flex h-16 items-center justify-between px-6 border-b border-border">
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 font-bold text-xl tracking-tight text-foreground cursor-pointer"
+            className="flex items-center gap-2 font-bold text-xl tracking-tight text-foreground cursor-pointer font-display"
           >
-            <Shield className="h-6 w-6 text-primary" />
+            <Shield className="h-6 w-6 text-fleet-amber" />
             <span>
-              Transit<span className="text-blue-500">Ops</span>
+              Transit<span className="text-fleet-amber">Ops</span>
             </span>
           </Link>
           <button
@@ -151,7 +152,7 @@ export default function AppLayout({
                 href={item.href}
                 className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 cursor-pointer ${
                   isActive
-                    ? "bg-secondary text-foreground border-l-2 border-blue-500"
+                    ? "bg-secondary text-foreground border-l-2 border-fleet-amber"
                     : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                 }`}
                 onClick={() => setSidebarOpen(false)}
@@ -173,7 +174,7 @@ export default function AppLayout({
               <p className="text-sm font-semibold truncate text-foreground capitalize">
                 {fullName}
               </p>
-              <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-500 capitalize">
+              <span className="inline-flex items-center rounded-full bg-fleet-amber/10 px-2 py-0.5 text-xs font-mono font-medium text-fleet-amber capitalize">
                 {userRole.replace("_", " ")}
               </span>
             </div>
@@ -200,7 +201,7 @@ export default function AppLayout({
             >
               <Menu className="h-5 w-5" />
             </button>
-            <h1 className="text-lg font-semibold text-foreground capitalize">
+            <h1 className="font-display text-lg font-semibold text-foreground capitalize">
               {pathname === "/" ? "Home" : pathname.split("/").pop()?.replace("-", " ")}
             </h1>
           </div>
@@ -211,18 +212,27 @@ export default function AppLayout({
               <span className="text-xs text-muted-foreground hidden sm:inline-block">
                 Persona:
               </span>
-              <select
-                value={userRole}
-                onChange={handleRoleChange}
-                disabled={switching}
-                className="text-xs bg-secondary border border-border text-foreground rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer disabled:opacity-50"
-              >
-                {roles.map((r) => (
-                  <option key={r.value} value={r.value}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-center gap-1.5 bg-secondary border border-border rounded-md px-2.5 py-1">
+                <span className={cn(
+                  "h-2 w-2 rounded-full transition-colors duration-150",
+                  userRole === "fleet_manager" && "bg-fleet-amber",
+                  userRole === "driver" && "bg-fleet-teal",
+                  userRole === "safety_officer" && "bg-fleet-ochre",
+                  userRole === "financial_analyst" && "bg-muted-foreground"
+                )} />
+                <select
+                  value={userRole}
+                  onChange={handleRoleChange}
+                  disabled={switching}
+                  className="text-xs bg-transparent border-0 text-foreground focus:outline-none cursor-pointer disabled:opacity-50 font-medium"
+                >
+                  {roles.map((r) => (
+                    <option key={r.value} value={r.value} className="bg-card text-foreground">
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <ThemeToggle />

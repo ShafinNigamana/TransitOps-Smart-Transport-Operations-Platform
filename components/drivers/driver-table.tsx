@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -26,6 +27,8 @@ import {
   Loader2,
   Ban,
 } from "lucide-react";
+
+import { toast } from "sonner";
 
 interface DriverTableProps {
   initialDrivers: Driver[];
@@ -97,7 +100,10 @@ export function DriverTable({ initialDrivers }: DriverTableProps) {
     setErrorMessage(null);
     startTransition(async () => {
       const res = await suspendDriver(driverId);
-      if (!res.success) {
+      if (res.success) {
+        toast.success("Driver status set to suspended");
+      } else {
+        toast.error(res.error.message);
         setErrorMessage(res.error.message);
       }
     });
@@ -236,16 +242,18 @@ export function DriverTable({ initialDrivers }: DriverTableProps) {
           <TableBody>
             {paginatedDrivers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={driverColumns.length + 1} className="h-32 text-center">
-                  <div className="flex flex-col items-center gap-2 text-neutral-400 dark:text-neutral-500">
-                    <Users className="h-8 w-8 opacity-50" />
-                    <p className="text-sm font-medium">No drivers found</p>
-                    <p className="text-xs">
-                      {search || statusFilter !== "all"
+                <TableCell colSpan={driverColumns.length + 1} className="h-48">
+                  <EmptyState
+                    icon={Users}
+                    title="No drivers found"
+                    description={
+                      search || statusFilter !== "all"
                         ? "Try adjusting your search or filters."
-                        : "Register your first driver to get started."}
-                    </p>
-                  </div>
+                        : "Register your first driver to get started."
+                    }
+                    ctaLabel={!(search || statusFilter !== "all") ? "Register Driver" : undefined}
+                    onCtaClick={!(search || statusFilter !== "all") ? () => setFormOpen(true) : undefined}
+                  />
                 </TableCell>
               </TableRow>
             ) : (

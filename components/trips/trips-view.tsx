@@ -27,6 +27,8 @@ import {
   cancelTrip,
 } from "@/lib/actions/trips";
 
+import { toast } from "sonner";
+
 interface TripsViewProps {
   initialTrips: Trip[];
   initialVehicles: Vehicle[];
@@ -70,8 +72,10 @@ export function TripsView({
     startTransition(async () => {
       const res = await createTrip(input);
       if (res.success) {
+        toast.success("Trip created as draft successfully.");
         setIsNewTripOpen(false);
       } else {
+        toast.error(res.error.message);
         setErrorMessage(res.error.message);
       }
     });
@@ -81,7 +85,10 @@ export function TripsView({
     setErrorMessage(null);
     startTransition(async () => {
       const res = await dispatchTrip(tripId);
-      if (!res.success) {
+      if (res.success) {
+        toast.success("Trip dispatched successfully!");
+      } else {
+        toast.error(res.error.message);
         setErrorMessage(res.error.message);
       }
     });
@@ -102,8 +109,10 @@ export function TripsView({
         fuel_consumed_l: fuelConsumedL,
       });
       if (res.success) {
+        toast.success("Trip marked as completed!");
         setSelectedTripForComplete(null);
       } else {
+        toast.error(res.error.message);
         setErrorMessage(res.error.message);
       }
     });
@@ -113,7 +122,10 @@ export function TripsView({
     setErrorMessage(null);
     startTransition(async () => {
       const res = await cancelTrip(tripId);
-      if (!res.success) {
+      if (res.success) {
+        toast.success("Trip cancelled successfully.");
+      } else {
+        toast.error(res.error.message);
         setErrorMessage(res.error.message);
       }
     });

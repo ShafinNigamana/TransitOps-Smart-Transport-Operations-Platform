@@ -32,71 +32,147 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+
+  /* Fleet-ops accent tokens exposed to Tailwind */
+  --color-fleet-amber: #D97A2B;
+  --color-fleet-teal: #2C7A7B;
+  --color-fleet-sage: #3D8B7A;
+  --color-fleet-ochre: #C4853A;
+  --color-fleet-red: #DC4441;
 }
 
+/* ─── LIGHT MODE ─── Fleet-ops warm steel palette ─── */
 :root {
-  --background: hsl(220 14.3% 95.9%);
-  --foreground: hsl(224 71.4% 4.1%);
-  
-  --card: hsl(0 0% 100%);
-  --card-foreground: hsl(224 71.4% 4.1%);
-  
-  --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(224 71.4% 4.1%);
-  
-  --primary: hsl(220.9 39.3% 11%);
-  --primary-foreground: hsl(210 20% 98%);
-  
-  --secondary: hsl(220 14.3% 90%);
-  --secondary-foreground: hsl(220.9 39.3% 11%);
-  
-  --muted: hsl(220 14.3% 90%);
-  --muted-foreground: hsl(220 8.9% 46.1%);
-  
-  --accent: hsl(220 14.3% 90%);
-  --accent-foreground: hsl(220.9 39.3% 11%);
-  
-  --destructive: hsl(0 84.2% 60.2%);
-  --destructive-foreground: hsl(210 20% 98%);
-  
-  --border: hsl(220 13% 86%);
-  --input: hsl(220 13% 86%);
-  --ring: hsl(224 71.4% 4.1%);
-  
+  --background: #EFEDE7;
+  --foreground: #16181B;
+
+  --card: #F8F7F3;
+  --card-foreground: #16181B;
+
+  --popover: #F8F7F3;
+  --popover-foreground: #16181B;
+
+  --primary: #D97A2B;
+  --primary-foreground: #F8F7F3;
+
+  --secondary: #E4E2DC;
+  --secondary-foreground: #16181B;
+
+  --muted: #E4E2DC;
+  --muted-foreground: #5B5E64;
+
+  --accent: #2C7A7B;
+  --accent-foreground: #F8F7F3;
+
+  --destructive: #DC4441;
+  --destructive-foreground: #F8F7F3;
+
+  --border: #D8D5CE;
+  --input: #D8D5CE;
+  --ring: #D97A2B;
+
   --radius: 0.5rem;
 }
 
+/* ─── DARK MODE ─── Graphite dispatch-center palette ─── */
 .dark {
-  --background: hsl(224 71.4% 4.1%);
-  --foreground: hsl(210 20% 98%);
-  
-  --card: hsl(224 71.4% 6%);
-  --card-foreground: hsl(210 20% 98%);
-  
-  --popover: hsl(224 71.4% 4.1%);
-  --popover-foreground: hsl(210 20% 98%);
-  
-  --primary: hsl(210 20% 98%);
-  --primary-foreground: hsl(220.9 39.3% 11%);
-  
-  --secondary: hsl(215 27.9% 16.9%);
-  --secondary-foreground: hsl(210 20% 98%);
-  
-  --muted: hsl(215 27.9% 12%);
-  --muted-foreground: hsl(217.9 10.6% 64.9%);
-  
-  --accent: hsl(215 27.9% 16.9%);
-  --accent-foreground: hsl(210 20% 98%);
-  
-  --destructive: hsl(0 62.8% 30.6%);
-  --destructive-foreground: hsl(210 20% 98%);
-  
-  --border: hsl(215 27.9% 16.9%);
-  --input: hsl(215 27.9% 16.9%);
-  --ring: hsl(216 12.2% 83.9%);
+  --background: #1B1D21;
+  --foreground: #E9E7E1;
+
+  --card: #24262B;
+  --card-foreground: #E9E7E1;
+
+  --popover: #24262B;
+  --popover-foreground: #E9E7E1;
+
+  --primary: #D97A2B;
+  --primary-foreground: #1B1D21;
+
+  --secondary: #2E3035;
+  --secondary-foreground: #E9E7E1;
+
+  --muted: #2E3035;
+  --muted-foreground: #9A9DA3;
+
+  --accent: #2C7A7B;
+  --accent-foreground: #E9E7E1;
+
+  --destructive: #DC4441;
+  --destructive-foreground: #E9E7E1;
+
+  --border: #35373D;
+  --input: #35373D;
+  --ring: #D97A2B;
 }
 
+/* ─── BASE ─── */
 body {
-  font-family: var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-sans), "IBM Plex Sans", system-ui, sans-serif;
   transition: background-color 150ms ease, color 150ms ease;
+}
+
+/* ─── TYPOGRAPHY ─── */
+.font-display {
+  font-family: "General Sans", var(--font-sans), system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.font-mono {
+  font-family: var(--font-mono), "IBM Plex Mono", ui-monospace, monospace;
+}
+
+/* ─── INTERACTIVE DEFAULTS ─── */
+button,
+[role="button"],
+select,
+[role="menuitem"],
+[role="option"],
+[role="tab"],
+a {
+  cursor: pointer;
+}
+
+button,
+select,
+a,
+[role="button"] {
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease, opacity 150ms ease;
+}
+
+/* ─── SIGNATURE ANIMATION: Route trace line ─── */
+@keyframes route-trace {
+  0% {
+    stroke-dashoffset: 1200;
+  }
+  50% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -1200;
+  }
+}
+
+.route-line {
+  animation: route-trace 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* ─── SKELETON SHIMMER ─── */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--muted) 25%,
+    var(--secondary) 50%,
+    var(--muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
 }
