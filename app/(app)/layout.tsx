@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { useTheme } from "next-themes";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { logout } from "@/lib/actions/auth";
@@ -17,9 +19,8 @@ import {
   BarChart3,
   Menu,
   X,
-  Shield,
-  LogOut,
   User,
+  LogOut,
 } from "lucide-react";
 
 interface NavItem {
@@ -45,9 +46,17 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const { resolvedTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [userRole, setUserRole] = React.useState<string>("fleet_manager");
   const [fullName, setFullName] = React.useState<string>("Operator");
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const logoSrc = mounted && resolvedTheme === "dark" ? "/logo-dark.png" : "/logo-light.png";
 
   // Load user profile on mount
   React.useEffect(() => {
@@ -103,12 +112,16 @@ export default function AppLayout({
         <div className="flex h-16 items-center justify-between px-6 border-b border-border">
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 font-bold text-xl tracking-tight text-foreground cursor-pointer font-display"
+            className="flex items-center gap-2 cursor-pointer"
           >
-            <Shield className="h-6 w-6 text-fleet-amber" />
-            <span>
-              Transit<span className="text-fleet-amber">Ops</span>
-            </span>
+            <Image
+              src={logoSrc}
+              alt="TransitOps Logo"
+              width={140}
+              height={35}
+              priority
+              className="h-8 w-auto"
+            />
           </Link>
           <button
             onClick={() => setSidebarOpen(false)}
