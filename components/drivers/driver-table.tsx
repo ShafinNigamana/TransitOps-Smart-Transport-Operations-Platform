@@ -32,6 +32,7 @@ import { toast } from "sonner";
 
 interface DriverTableProps {
   initialDrivers: Driver[];
+  userRole?: string;
 }
 
 const DRIVER_STATUSES: { value: DriverStatus | "all"; label: string; color: string }[] = [
@@ -44,7 +45,7 @@ const DRIVER_STATUSES: { value: DriverStatus | "all"; label: string; color: stri
 
 const PAGE_SIZE = 10;
 
-export function DriverTable({ initialDrivers }: DriverTableProps) {
+export function DriverTable({ initialDrivers, userRole = "driver" }: DriverTableProps) {
   const [drivers, setDrivers] = React.useState<Driver[]>(initialDrivers);
   const [search, setSearch] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<DriverStatus | "all">("all");
@@ -53,6 +54,8 @@ export function DriverTable({ initialDrivers }: DriverTableProps) {
   const [formOpen, setFormOpen] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [isPending, startTransition] = React.useTransition();
+
+  const canWrite = userRole === "fleet_manager" || userRole === "safety_officer";
 
   // Sync state with server component updates
   React.useEffect(() => {
@@ -139,14 +142,16 @@ export function DriverTable({ initialDrivers }: DriverTableProps) {
           </p>
         </div>
 
-        <Button
-          onClick={() => setFormOpen(true)}
-          className="shrink-0 font-semibold shadow-sm cursor-pointer"
-          disabled={isPending}
-        >
-          <Plus className="h-4 w-4 mr-1.5" />
-          New Driver
-        </Button>
+        {canWrite && (
+          <Button
+            onClick={() => setFormOpen(true)}
+            className="shrink-0 font-semibold shadow-sm cursor-pointer"
+            disabled={isPending}
+          >
+            <Plus className="h-4 w-4 mr-1.5" />
+            New Driver
+          </Button>
+        )}
       </div>
 
       {/* Toolbar */}
@@ -251,8 +256,8 @@ export function DriverTable({ initialDrivers }: DriverTableProps) {
                         ? "Try adjusting your search or filters."
                         : "Register your first driver to get started."
                     }
-                    ctaLabel={!(search || statusFilter !== "all") ? "Register Driver" : undefined}
-                    onCtaClick={!(search || statusFilter !== "all") ? () => setFormOpen(true) : undefined}
+                    ctaLabel={canWrite && !(search || statusFilter !== "all") ? "Register Driver" : undefined}
+                    onCtaClick={canWrite ? () => setFormOpen(true) : undefined}
                   />
                 </TableCell>
               </TableRow>
@@ -270,7 +275,9 @@ export function DriverTable({ initialDrivers }: DriverTableProps) {
                     </TableCell>
                   ))}
                   <TableCell className="text-right">
-                    {driver.status === "suspended" ? (
+                    {!canWrite ? (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    ) : driver.status === "suspended" ? (
                       <span className="text-xs text-rose-500 font-semibold">Suspended</span>
                     ) : driver.status === "on_trip" ? (
                       <span className="text-xs text-neutral-400 italic" title="Cannot suspend driver currently on a trip">

@@ -14,6 +14,9 @@ export const revalidate = 0; // Live data updates
 
 async function VehiclesContent() {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userRole = user?.user_metadata?.role || "driver";
+
   const { data } = await supabase
     .from("vehicles")
     .select("*")
@@ -21,7 +24,7 @@ async function VehiclesContent() {
 
   const vehicles = (data ?? []) as Vehicle[];
 
-  return <VehicleTable initialVehicles={vehicles} />;
+  return <VehicleTable initialVehicles={vehicles} userRole={userRole} />;
 }
 
 export default function VehiclesPage() {

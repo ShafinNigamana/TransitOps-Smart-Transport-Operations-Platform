@@ -32,6 +32,7 @@ import { toast } from "sonner";
 
 interface VehicleTableProps {
   initialVehicles: Vehicle[];
+  userRole?: string;
 }
 
 const VEHICLE_STATUSES: { value: VehicleStatus | "all"; label: string; color: string }[] = [
@@ -54,7 +55,7 @@ const REGIONS = [
 
 const PAGE_SIZE = 10;
 
-export function VehicleTable({ initialVehicles }: VehicleTableProps) {
+export function VehicleTable({ initialVehicles, userRole = "driver" }: VehicleTableProps) {
   const [vehicles, setVehicles] = React.useState<Vehicle[]>(initialVehicles);
   const [search, setSearch] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<VehicleStatus | "all">("all");
@@ -64,6 +65,8 @@ export function VehicleTable({ initialVehicles }: VehicleTableProps) {
   const [formOpen, setFormOpen] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [isPending, startTransition] = React.useTransition();
+
+  const canWrite = userRole === "fleet_manager";
 
   // Sync state with server component updates
   React.useEffect(() => {
@@ -150,14 +153,16 @@ export function VehicleTable({ initialVehicles }: VehicleTableProps) {
           </p>
         </div>
 
-        <Button
-          onClick={() => setFormOpen(true)}
-          className="shrink-0 font-semibold shadow-sm cursor-pointer"
-          disabled={isPending}
-        >
-          <Plus className="h-4 w-4 mr-1.5" />
-          New Vehicle
-        </Button>
+        {canWrite && (
+          <Button
+            onClick={() => setFormOpen(true)}
+            className="shrink-0 font-semibold shadow-sm cursor-pointer"
+            disabled={isPending}
+          >
+            <Plus className="h-4 w-4 mr-1.5" />
+            New Vehicle
+          </Button>
+        )}
       </div>
 
       {/* Toolbar */}
@@ -287,8 +292,8 @@ export function VehicleTable({ initialVehicles }: VehicleTableProps) {
                         ? "Try adjusting your search or filters."
                         : "Register your first vehicle to get started."
                     }
-                    ctaLabel={!(search || statusFilter !== "all" || regionFilter !== "All Regions") ? "Register Vehicle" : undefined}
-                    onCtaClick={!(search || statusFilter !== "all" || regionFilter !== "All Regions") ? () => setFormOpen(true) : undefined}
+                    ctaLabel={canWrite && !(search || statusFilter !== "all" || regionFilter !== "All Regions") ? "Register Vehicle" : undefined}
+                    onCtaClick={canWrite ? () => setFormOpen(true) : undefined}
                   />
                 </TableCell>
               </TableRow>
@@ -306,7 +311,9 @@ export function VehicleTable({ initialVehicles }: VehicleTableProps) {
                     </TableCell>
                   ))}
                   <TableCell className="text-right">
-                    {vehicle.status === "retired" ? (
+                    {!canWrite ? (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    ) : vehicle.status === "retired" ? (
                       <span className="text-xs text-neutral-400 italic">Retired</span>
                     ) : vehicle.status === "on_trip" ? (
                       <span className="text-xs text-neutral-400 italic" title="Cannot retire vehicle currently on a trip">

@@ -35,6 +35,7 @@ export async function createDriver(
     .single();
 
   if (error) {
+    console.error("Supabase error during createDriver:", error);
     if (error.code === "23505") {
       return {
         success: false,
@@ -46,7 +47,7 @@ export async function createDriver(
     }
     return {
       success: false,
-      error: { code: "UNKNOWN", message: "Failed to create driver." },
+      error: { code: "UNKNOWN", message: error.message || "Failed to create driver." },
     };
   }
 

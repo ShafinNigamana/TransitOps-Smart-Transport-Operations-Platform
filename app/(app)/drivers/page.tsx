@@ -14,6 +14,9 @@ export const revalidate = 0; // Live data updates
 
 async function DriversContent() {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userRole = user?.user_metadata?.role || "driver";
+
   const { data } = await supabase
     .from("drivers")
     .select("*")
@@ -21,7 +24,7 @@ async function DriversContent() {
 
   const drivers = (data ?? []) as Driver[];
 
-  return <DriverTable initialDrivers={drivers} />;
+  return <DriverTable initialDrivers={drivers} userRole={userRole} />;
 }
 
 export default function DriversPage() {
