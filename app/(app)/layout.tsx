@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { logout } from "@/lib/actions/auth";
 import {
   LayoutDashboard,
   Truck,
@@ -130,7 +131,11 @@ export default function AppLayout({
                 {userRole.replace("_", " ")}
               </span>
             </div>
-            <button className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground cursor-pointer">
+            <button
+              onClick={() => logout()}
+              className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground cursor-pointer transition-colors duration-150"
+              aria-label="Sign out"
+            >
               <LogOut className="h-4 w-4" />
             </button>
           </div>
