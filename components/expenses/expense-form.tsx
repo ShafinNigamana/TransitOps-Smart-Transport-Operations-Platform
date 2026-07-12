@@ -8,6 +8,8 @@ import { Select } from "@/components/ui/select";
 import { ModalForm } from "@/components/shared/modal-form";
 import type { Vehicle, CreateExpenseInput } from "@/types/database";
 
+import { toast } from "sonner";
+
 interface ExpenseFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -32,18 +34,18 @@ export function ExpenseForm({
   onSubmit,
 }: ExpenseFormProps) {
   const [vehicleId, setVehicleId] = React.useState("");
-  const [category, setCategory] = React.useState(EXPENSE_CATEGORIES[0]);
+  const [category, setCategory] = React.useState("");
   const [amount, setAmount] = React.useState("");
-  const [expenseDate, setExpenseDate] = React.useState(
-    new Date().toISOString().split("T")[0]
-  );
+  const [expenseDate, setExpenseDate] = React.useState("");
   const [notes, setNotes] = React.useState("");
+
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
+  // Reset form state on open change
   React.useEffect(() => {
     if (open) {
       setVehicleId("");
-      setCategory(EXPENSE_CATEGORIES[0]);
+      setCategory("");
       setAmount("");
       setExpenseDate(new Date().toISOString().split("T")[0]);
       setNotes("");
@@ -73,6 +75,15 @@ export function ExpenseForm({
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      if (newErrors.amount) {
+        if (amountNum < 0) {
+          toast.error("Amount cannot be negative.");
+        } else {
+          toast.error("Amount is required.");
+        }
+      } else {
+        toast.error("Please fill in all required fields.");
+      }
       return;
     }
 

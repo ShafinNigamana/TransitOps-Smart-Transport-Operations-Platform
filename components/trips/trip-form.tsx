@@ -8,6 +8,8 @@ import { Select } from "@/components/ui/select";
 import { ModalForm } from "@/components/shared/modal-form";
 import { CreateTripInput, Driver, Vehicle } from "@/types/database";
 
+import { toast } from "sonner";
+
 interface TripFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -77,15 +79,22 @@ export function TripForm({
       selectedVehicle &&
       Number(cargoWeightKg) > selectedVehicle.max_load_capacity_kg
     ) {
-      newErrors.cargoWeightKg = `Cargo weight (${cargoWeightKg} kg) exceeds ${selectedVehicle.name}'s limit (${selectedVehicle.max_load_capacity_kg} kg).`;
+      const errMsg = `Cargo weight (${cargoWeightKg} kg) exceeds ${selectedVehicle.name}'s limit (${selectedVehicle.max_load_capacity_kg} kg).`;
+      newErrors.cargoWeightKg = errMsg;
+      toast.error(errMsg);
     }
 
     if (selectedDriver && new Date(selectedDriver.license_expiry_date) < today) {
-      newErrors.driverId = `Driver license expired on ${selectedDriver.license_expiry_date}.`;
+      const errMsg = `Driver license expired on ${selectedDriver.license_expiry_date}.`;
+      newErrors.driverId = errMsg;
+      toast.error(errMsg);
     }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      if (!newErrors.cargoWeightKg && !newErrors.driverId) {
+        toast.error("Please fill in all required fields.");
+      }
       return;
     }
 

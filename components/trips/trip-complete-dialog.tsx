@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { ModalForm } from "@/components/shared/modal-form";
 import { Trip } from "@/types/database";
 
+import { toast } from "sonner";
+
 interface TripCompleteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -45,6 +47,11 @@ export function TripCompleteDialog({
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      if (newErrors.actualDistanceKm) {
+        toast.error("Please enter a valid actual distance.");
+      } else if (newErrors.fuelConsumedL) {
+        toast.error("Please enter valid fuel consumed.");
+      }
       return;
     }
 

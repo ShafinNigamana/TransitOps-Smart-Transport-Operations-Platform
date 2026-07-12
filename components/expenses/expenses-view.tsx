@@ -53,8 +53,10 @@ export function ExpensesView({
     startTransition(async () => {
       const res = await createExpense(input);
       if (res.success) {
+        toast.success("Expense logged successfully!");
         setIsLogOpen(false);
       } else {
+        toast.error(res.error.message);
         setErrorMessage(res.error.message);
       }
     });

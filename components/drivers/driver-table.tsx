@@ -28,6 +28,8 @@ import {
   Ban,
 } from "lucide-react";
 
+import { toast } from "sonner";
+
 interface DriverTableProps {
   initialDrivers: Driver[];
 }
@@ -98,7 +100,10 @@ export function DriverTable({ initialDrivers }: DriverTableProps) {
     setErrorMessage(null);
     startTransition(async () => {
       const res = await suspendDriver(driverId);
-      if (!res.success) {
+      if (res.success) {
+        toast.success("Driver status set to suspended");
+      } else {
+        toast.error(res.error.message);
         setErrorMessage(res.error.message);
       }
     });

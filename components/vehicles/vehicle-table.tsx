@@ -28,6 +28,8 @@ import {
   Trash2,
 } from "lucide-react";
 
+import { toast } from "sonner";
+
 interface VehicleTableProps {
   initialVehicles: Vehicle[];
 }
@@ -109,7 +111,10 @@ export function VehicleTable({ initialVehicles }: VehicleTableProps) {
     setErrorMessage(null);
     startTransition(async () => {
       const res = await retireVehicle(vehicleId);
-      if (!res.success) {
+      if (res.success) {
+        toast.success("Vehicle status set to retired");
+      } else {
+        toast.error(res.error.message);
         setErrorMessage(res.error.message);
       }
     });

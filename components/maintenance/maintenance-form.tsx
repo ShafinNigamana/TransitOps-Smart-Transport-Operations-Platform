@@ -8,6 +8,8 @@ import { Select } from "@/components/ui/select";
 import { ModalForm } from "@/components/shared/modal-form";
 import { CreateMaintenanceInput, Vehicle } from "@/types/database";
 
+import { toast } from "sonner";
+
 interface MaintenanceFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -60,8 +62,9 @@ export function MaintenanceForm({
     if (!vehicleId) {
       newErrors.vehicleId = "Please select a vehicle.";
     } else if (selectedVehicle && selectedVehicle.status === "on_trip") {
-      newErrors.vehicleId =
-        "Cannot start maintenance while the vehicle is currently on a trip.";
+      const errMsg = "Cannot start maintenance while the vehicle is currently on a trip.";
+      newErrors.vehicleId = errMsg;
+      toast.error(errMsg);
     }
 
     const finalType =
@@ -74,11 +77,16 @@ export function MaintenanceForm({
     }
 
     if (cost !== "" && Number(cost) < 0) {
-      newErrors.cost = "Cost cannot be negative.";
+      const errMsg = "Cost cannot be negative.";
+      newErrors.cost = errMsg;
+      toast.error(errMsg);
     }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      if (!newErrors.vehicleId && !newErrors.cost) {
+        toast.error("Please fill in all required fields.");
+      }
       return;
     }
 

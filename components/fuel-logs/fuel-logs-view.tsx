@@ -49,8 +49,10 @@ export function FuelLogsView({
     startTransition(async () => {
       const res = await createFuelLog(input);
       if (res.success) {
+        toast.success("Fuel purchase logged successfully!");
         setIsLogOpen(false);
       } else {
+        toast.error(res.error.message);
         setErrorMessage(res.error.message);
       }
     });

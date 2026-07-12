@@ -8,6 +8,8 @@ import { Select } from "@/components/ui/select";
 import { ModalForm } from "@/components/shared/modal-form";
 import type { Vehicle, Trip, CreateFuelLogInput } from "@/types/database";
 
+import { toast } from "sonner";
+
 interface FuelLogFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -72,6 +74,13 @@ export function FuelLogForm({
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      if (newErrors.liters) {
+        toast.error("Liters must be greater than 0.");
+      } else if (newErrors.cost) {
+        toast.error("Cost cannot be negative.");
+      } else {
+        toast.error("Please fill in all required fields.");
+      }
       return;
     }
 

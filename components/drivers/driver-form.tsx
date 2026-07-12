@@ -15,6 +15,7 @@ import {
 import { createDriverSchema, type CreateDriverInput } from "@/lib/validations/driver.schema";
 import { createDriver } from "@/lib/actions/drivers";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface DriverFormProps {
   open: boolean;
@@ -24,11 +25,13 @@ interface DriverFormProps {
 
 const LICENSE_CATEGORIES = [
   "Class A Commercial",
+  "Class B Commercial",
+  "Class C Commercial",
   "Class A HazMat",
   "Class B Heavy",
+  "Class C Tanker",
   "Class B General",
   "Class C Standard",
-  "Class C Tanker",
 ];
 
 export function DriverForm({ open, onOpenChange, onSuccess }: DriverFormProps) {
@@ -82,13 +85,16 @@ export function DriverForm({ open, onOpenChange, onSuccess }: DriverFormProps) {
     try {
       const result = await createDriver(parsed.data);
       if (result.success) {
+        toast.success("Driver registered successfully");
         resetForm();
         onOpenChange(false);
         onSuccess?.();
       } else {
+        toast.error(result.error.message);
         setServerError(result.error.message);
       }
     } catch {
+      toast.error("An unexpected error occurred. Please try again.");
       setServerError("Something went wrong — please try again.");
     } finally {
       setIsSubmitting(false);

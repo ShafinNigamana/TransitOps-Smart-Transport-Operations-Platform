@@ -22,6 +22,8 @@ import {
   closeMaintenanceRecord,
 } from "@/lib/actions/maintenance";
 
+import { toast } from "sonner";
+
 interface MaintenanceViewProps {
   initialRecords: MaintenanceRecord[];
   initialVehicles: Vehicle[];
@@ -56,8 +58,10 @@ export function MaintenanceView({
     startTransition(async () => {
       const res = await createMaintenanceRecord(input);
       if (res.success) {
+        toast.success("Maintenance record logged successfully and vehicle grounded.");
         setIsLogOpen(false);
       } else {
+        toast.error(res.error.message);
         setErrorMessage(res.error.message);
       }
     });
@@ -67,7 +71,10 @@ export function MaintenanceView({
     setErrorMessage(null);
     startTransition(async () => {
       const res = await closeMaintenanceRecord(recordId);
-      if (!res.success) {
+      if (res.success) {
+        toast.success("Maintenance record closed. Vehicle is now available.");
+      } else {
+        toast.error(res.error.message);
         setErrorMessage(res.error.message);
       }
     });
