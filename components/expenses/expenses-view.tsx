@@ -93,7 +93,7 @@ export function ExpensesView({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-xl bg-emerald-500/15 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+            <div className="h-9 w-9 rounded-xl bg-fleet-amber/10 flex items-center justify-center text-fleet-amber">
               <DollarSign className="h-5 w-5" />
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 flex items-center gap-2">

@@ -128,7 +128,7 @@ export function DriverTable({ initialDrivers }: DriverTableProps) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-fleet-amber/10 text-fleet-amber">
               <Users className="h-5 w-5" />
             </div>
             Driver Management
