@@ -143,10 +143,6 @@ export default function Footer() {
             &copy; {currentYear} TransitOps. Smart Transport Operations Platform.
           </p>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 text-xs text-accent font-mono font-bold bg-accent/10 px-2.5 py-0.5 rounded border border-accent/20">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
-              Local Engine Online
-            </div>
           </div>
         </div>
 
