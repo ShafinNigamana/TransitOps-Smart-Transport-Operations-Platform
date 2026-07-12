@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
 import { exportFleetCSV } from "@/lib/actions/analytics";
 import type { FleetAnalyticsSummary } from "@/lib/actions/analytics";
+import { toast } from "sonner";
 import {
   BarChart,
   Bar,
@@ -43,14 +44,12 @@ interface AnalyticsViewProps {
 }
 
 const CHART_COLORS = [
-  "#3b82f6", // blue
-  "#f59e0b", // amber
-  "#10b981", // emerald
-  "#ef4444", // red
-  "#8b5cf6", // violet
-  "#ec4899", // pink
-  "#06b6d4", // cyan
-  "#f97316", // orange
+  "#2C7A7B", // freight teal (secondary accent)
+  "#D97A2B", // route amber (primary accent)
+  "#3D8B7A", // desaturated sage
+  "#C4853A", // desaturated ochre
+  "#5B5E64", // muted steel
+  "#DC4441", // operations red
 ];
 
 export function AnalyticsView({ data }: AnalyticsViewProps) {
@@ -70,7 +69,12 @@ export function AnalyticsView({ data }: AnalyticsViewProps) {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
+        toast.success("Fleet report CSV exported successfully.");
+      } else {
+        toast.error(result.error.message || "Failed to export CSV report.");
       }
+    } catch (err) {
+      toast.error("An unexpected error occurred during CSV export.");
     } finally {
       setIsExporting(false);
     }
@@ -440,16 +444,16 @@ export function AnalyticsView({ data }: AnalyticsViewProps) {
                   <TableCell className="hidden md:table-cell font-mono text-sm">
                     {formatCurrency(v.acquisition_cost)}
                   </TableCell>
-                  <TableCell className="hidden lg:table-cell text-sm">
+                  <TableCell className="hidden lg:table-cell font-mono text-sm text-muted-foreground">
                     {formatCurrency(v.maintenance_cost)}
                   </TableCell>
-                  <TableCell className="hidden lg:table-cell text-sm">
+                  <TableCell className="hidden lg:table-cell font-mono text-sm text-muted-foreground">
                     {formatCurrency(v.fuel_cost)}
                   </TableCell>
-                  <TableCell className="font-semibold text-sm">
+                  <TableCell className="font-mono font-semibold text-sm">
                     {formatCurrency(v.total_operational_cost)}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="font-mono">
                     {v.roi !== null ? (
                       <Badge
                         variant={v.roi >= 0 ? "success" : "danger"}

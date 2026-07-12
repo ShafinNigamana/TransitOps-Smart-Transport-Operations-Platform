@@ -35,9 +35,9 @@ export function KPICard({
       </div>
 
       <div className="mt-4">
-        <span className="text-3xl font-extrabold text-foreground">{value}</span>
+        <span className="font-display text-3xl font-extrabold text-foreground">{value}</span>
         {subtitle && (
-          <span className="text-sm text-muted-foreground ml-1.5">
+          <span className="font-mono text-sm text-muted-foreground ml-1.5">
             {subtitle}
           </span>
         )}
