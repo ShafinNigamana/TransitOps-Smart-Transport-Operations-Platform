@@ -9,6 +9,8 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ChartSkeleton } from "@/components/shared/loading-skeletons";
 import { BarChart3 } from "lucide-react";
 
+import { createClient } from "@/lib/supabase/server";
+
 export const metadata: Metadata = {
   title: "Analytics | TransitOps",
   description:
@@ -18,6 +20,10 @@ export const metadata: Metadata = {
 export const revalidate = 0;
 
 async function AnalyticsContent() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userRole = user?.user_metadata?.role || "driver";
+
   const result = await getFleetAnalyticsSummary();
 
   // Use live data only — no mock fallback
@@ -33,7 +39,7 @@ async function AnalyticsContent() {
     );
   }
 
-  return <AnalyticsView data={result.data} />;
+  return <AnalyticsView data={result.data} userRole={userRole} />;
 }
 
 export default function AnalyticsPage() {

@@ -41,6 +41,7 @@ import {
 
 interface AnalyticsViewProps {
   data: FleetAnalyticsSummary;
+  userRole?: string;
 }
 
 const CHART_COLORS = [
@@ -52,8 +53,10 @@ const CHART_COLORS = [
   "#DC4441", // operations red
 ];
 
-export function AnalyticsView({ data }: AnalyticsViewProps) {
+export function AnalyticsView({ data, userRole = "driver" }: AnalyticsViewProps) {
   const [isExporting, setIsExporting] = React.useState(false);
+
+  const canExport = userRole === "financial_analyst";
 
   const handleExportCSV = async () => {
     setIsExporting(true);
@@ -130,19 +133,21 @@ export function AnalyticsView({ data }: AnalyticsViewProps) {
           </p>
         </div>
 
-        <Button
-          onClick={handleExportCSV}
-          variant="outline"
-          className="shrink-0 font-semibold cursor-pointer"
-          disabled={isExporting}
-        >
-          {isExporting ? (
-            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-          ) : (
-            <Download className="h-4 w-4 mr-1.5" />
-          )}
-          Export Fleet CSV
-        </Button>
+        {canExport && (
+          <Button
+            onClick={handleExportCSV}
+            variant="outline"
+            className="shrink-0 font-semibold cursor-pointer"
+            disabled={isExporting}
+          >
+            {isExporting ? (
+              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-1.5" />
+            )}
+            Export Fleet CSV
+          </Button>
+        )}
       </div>
 
       {/* KPI Cards */}

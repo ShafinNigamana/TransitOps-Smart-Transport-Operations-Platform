@@ -18,6 +18,7 @@ import { formatDate } from "@/lib/utils";
 
 interface TripTableProps {
   trips: Trip[];
+  userRole?: string;
   onDispatch: (tripId: string) => void;
   onOpenCompleteDialog: (trip: Trip) => void;
   onCancel: (tripId: string) => void;
@@ -25,6 +26,7 @@ interface TripTableProps {
 
 export function TripTable({
   trips,
+  userRole = "driver",
   onDispatch,
   onOpenCompleteDialog,
   onCancel,
@@ -132,6 +134,7 @@ export function TripTable({
                   <div className="flex justify-end">
                     <TripActions
                       trip={trip}
+                      userRole={userRole}
                       onDispatch={onDispatch}
                       onOpenCompleteDialog={onOpenCompleteDialog}
                       onCancel={onCancel}
@@ -210,6 +213,7 @@ export function TripTable({
               </span>
               <TripActions
                 trip={trip}
+                userRole={userRole}
                 onDispatch={onDispatch}
                 onOpenCompleteDialog={onOpenCompleteDialog}
                 onCancel={onCancel}

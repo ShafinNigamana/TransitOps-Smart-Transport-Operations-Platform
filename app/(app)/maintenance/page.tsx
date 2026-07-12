@@ -16,22 +16,24 @@ export const revalidate = 0; // Disable static cache for live data updates
 async function MaintenanceContent() {
   const supabase = await createClient();
 
-  // Fetch dataset
-  const [recordsRes, vehiclesRes] = await Promise.all([
+  const [recordsRes, vehiclesRes, userRes] = await Promise.all([
     supabase
       .from("maintenance")
       .select("*, vehicle:vehicles(*)")
       .order("opened_at", { ascending: false }),
     supabase.from("vehicles").select("*").order("name"),
+    supabase.auth.getUser(),
   ]);
 
   const records = (recordsRes.data ?? []) as MaintenanceRecord[];
   const vehicles = (vehiclesRes.data ?? []) as Vehicle[];
+  const userRole = userRes.data.user?.user_metadata?.role || "driver";
 
   return (
     <MaintenanceView
       initialRecords={records}
       initialVehicles={vehicles}
+      userRole={userRole}
     />
   );
 }

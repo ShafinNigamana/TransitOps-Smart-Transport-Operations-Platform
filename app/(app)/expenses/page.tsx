@@ -16,21 +16,24 @@ export const revalidate = 0;
 async function ExpensesContent() {
   const supabase = await createClient();
 
-  const [expensesRes, vehiclesRes] = await Promise.all([
+  const [expensesRes, vehiclesRes, userRes] = await Promise.all([
     supabase
       .from("expenses")
       .select("*, vehicle:vehicles(*)")
       .order("expense_date", { ascending: false }),
     supabase.from("vehicles").select("*").order("name"),
+    supabase.auth.getUser(),
   ]);
 
   const expenses = (expensesRes.data ?? []) as Expense[];
   const vehicles = (vehiclesRes.data ?? []) as Vehicle[];
+  const userRole = userRes.data.user?.user_metadata?.role || "driver";
 
   return (
     <ExpensesView
       initialExpenses={expenses}
       initialVehicles={vehicles}
+      userRole={userRole}
     />
   );
 }

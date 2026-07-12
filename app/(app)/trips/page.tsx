@@ -16,25 +16,27 @@ export const revalidate = 0; // Disable static cache for live telemetry dashboar
 async function TripsContent() {
   const supabase = await createClient();
 
-  // Fetch initial dataset
-  const [tripsRes, vehiclesRes, driversRes] = await Promise.all([
+  const [tripsRes, vehiclesRes, driversRes, userRes] = await Promise.all([
     supabase
       .from("trips")
       .select("*, vehicle:vehicles(*), driver:drivers(*)")
       .order("created_at", { ascending: false }),
     supabase.from("vehicles").select("*").order("name"),
     supabase.from("drivers").select("*").order("full_name"),
+    supabase.auth.getUser(),
   ]);
 
   const trips = (tripsRes.data ?? []) as Trip[];
   const vehicles = (vehiclesRes.data ?? []) as Vehicle[];
   const drivers = (driversRes.data ?? []) as Driver[];
+  const userRole = userRes.data.user?.user_metadata?.role || "driver";
 
   return (
     <TripsView
       initialTrips={trips}
       initialVehicles={vehicles}
       initialDrivers={drivers}
+      userRole={userRole}
     />
   );
 }

@@ -16,7 +16,7 @@ export const revalidate = 0;
 async function FuelLogsContent() {
   const supabase = await createClient();
 
-  const [logsRes, vehiclesRes, tripsRes] = await Promise.all([
+  const [logsRes, vehiclesRes, tripsRes, userRes] = await Promise.all([
     supabase
       .from("fuel_logs")
       .select("*, vehicle:vehicles(*)")
@@ -26,17 +26,20 @@ async function FuelLogsContent() {
       .from("trips")
       .select("id, source, destination, vehicle_id, status")
       .order("created_at", { ascending: false }),
+    supabase.auth.getUser(),
   ]);
 
   const logs = (logsRes.data ?? []) as FuelLog[];
   const vehicles = (vehiclesRes.data ?? []) as Vehicle[];
   const trips = (tripsRes.data ?? []) as Trip[];
+  const userRole = userRes.data.user?.user_metadata?.role || "driver";
 
   return (
     <FuelLogsView
       initialLogs={logs}
       initialVehicles={vehicles}
       initialTrips={trips}
+      userRole={userRole}
     />
   );
 }

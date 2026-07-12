@@ -7,14 +7,21 @@ import { MaintenanceRecord } from "@/types/database";
 
 interface MaintenanceActionsProps {
   record: MaintenanceRecord;
+  userRole?: string;
   onCloseRepair: (id: string) => void;
 }
 
 export function MaintenanceActions({
   record,
+  userRole = "driver",
   onCloseRepair,
 }: MaintenanceActionsProps) {
+  const canClose = userRole === "fleet_manager";
+
   if (record.status === "open") {
+    if (!canClose) {
+      return <span className="text-xs text-muted-foreground">—</span>;
+    }
     return (
       <Button
         size="sm"

@@ -23,6 +23,7 @@ import { toast } from "sonner";
 interface ExpensesViewProps {
   initialExpenses: Expense[];
   initialVehicles: Vehicle[];
+  userRole?: string;
 }
 
 const CATEGORY_VARIANT: Record<string, "warning" | "danger" | "info" | "secondary" | "success"> = {
@@ -38,12 +39,16 @@ const CATEGORY_VARIANT: Record<string, "warning" | "danger" | "info" | "secondar
 export function ExpensesView({
   initialExpenses,
   initialVehicles,
+  userRole = "driver",
 }: ExpensesViewProps) {
   const [expenses, setExpenses] = React.useState<Expense[]>(initialExpenses);
+  const [vehicles, setVehicles] = React.useState<Vehicle[]>(initialVehicles);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isLogOpen, setIsLogOpen] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [isPending, startTransition] = React.useTransition();
+
+  const canWrite = userRole === "financial_analyst" || userRole === "driver";
 
   React.useEffect(() => {
     setExpenses(initialExpenses);
@@ -108,14 +113,16 @@ export function ExpensesView({
           </p>
         </div>
 
-        <Button
-          onClick={() => setIsLogOpen(true)}
-          className="shrink-0 font-semibold shadow-sm cursor-pointer"
-          disabled={isPending}
-        >
-          <Plus className="h-4 w-4 mr-1.5" />
-          Log Expense
-        </Button>
+        {canWrite && (
+          <Button
+            onClick={() => setIsLogOpen(true)}
+            className="shrink-0 font-semibold shadow-sm cursor-pointer"
+            disabled={isPending}
+          >
+            <Plus className="h-4 w-4 mr-1.5" />
+            Log Expense
+          </Button>
+        )}
       </div>
 
       {/* Search Filter */}

@@ -18,11 +18,13 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 
 interface MaintenanceTableProps {
   records: MaintenanceRecord[];
+  userRole?: string;
   onCloseRepair: (id: string) => void;
 }
 
 export function MaintenanceTable({
   records,
+  userRole = "driver",
   onCloseRepair,
 }: MaintenanceTableProps) {
   if (records.length === 0) {
@@ -96,6 +98,7 @@ export function MaintenanceTable({
                   <div className="flex justify-end">
                     <MaintenanceActions
                       record={record}
+                      userRole={userRole}
                       onCloseRepair={onCloseRepair}
                     />
                   </div>
@@ -149,6 +152,7 @@ export function MaintenanceTable({
               </span>
               <MaintenanceActions
                 record={record}
+                userRole={userRole}
                 onCloseRepair={onCloseRepair}
               />
             </div>

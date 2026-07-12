@@ -33,12 +33,14 @@ interface TripsViewProps {
   initialTrips: Trip[];
   initialVehicles: Vehicle[];
   initialDrivers: Driver[];
+  userRole?: string;
 }
 
 export function TripsView({
   initialTrips,
   initialVehicles,
   initialDrivers,
+  userRole = "driver",
 }: TripsViewProps) {
   const [trips, setTrips] = React.useState<Trip[]>(initialTrips);
   const [vehicles, setVehicles] = React.useState<Vehicle[]>(initialVehicles);
@@ -52,6 +54,8 @@ export function TripsView({
     React.useState<Trip | null>(null);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [isPending, startTransition] = React.useTransition();
+
+  const canWrite = userRole === "driver";
 
   // Keep state synchronized with server props updates
   React.useEffect(() => {
@@ -188,14 +192,16 @@ export function TripsView({
           </p>
         </div>
 
-        <Button
-          onClick={() => setIsNewTripOpen(true)}
-          className="shrink-0 font-semibold shadow-sm cursor-pointer"
-          disabled={isPending}
-        >
-          <Plus className="h-4 w-4 mr-1.5" />
-          New Trip
-        </Button>
+        {canWrite && (
+          <Button
+            onClick={() => setIsNewTripOpen(true)}
+            className="shrink-0 font-semibold shadow-sm cursor-pointer"
+            disabled={isPending}
+          >
+            <Plus className="h-4 w-4 mr-1.5" />
+            New Trip
+          </Button>
+        )}
       </div>
 
       {/* Tabs & Search Filter */}
@@ -234,6 +240,7 @@ export function TripsView({
         <TabsContent value="draft" className="mt-4">
           <TripTable
             trips={getFilteredTrips("draft")}
+            userRole={userRole}
             onDispatch={handleDispatchTrip}
             onOpenCompleteDialog={setSelectedTripForComplete}
             onCancel={handleCancelTrip}
@@ -243,6 +250,7 @@ export function TripsView({
         <TabsContent value="dispatched" className="mt-4">
           <TripTable
             trips={getFilteredTrips("dispatched")}
+            userRole={userRole}
             onDispatch={handleDispatchTrip}
             onOpenCompleteDialog={setSelectedTripForComplete}
             onCancel={handleCancelTrip}
@@ -252,6 +260,7 @@ export function TripsView({
         <TabsContent value="completed" className="mt-4">
           <TripTable
             trips={getFilteredTrips("completed")}
+            userRole={userRole}
             onDispatch={handleDispatchTrip}
             onOpenCompleteDialog={setSelectedTripForComplete}
             onCancel={handleCancelTrip}
@@ -261,6 +270,7 @@ export function TripsView({
         <TabsContent value="cancelled" className="mt-4">
           <TripTable
             trips={getFilteredTrips("cancelled")}
+            userRole={userRole}
             onDispatch={handleDispatchTrip}
             onOpenCompleteDialog={setSelectedTripForComplete}
             onCancel={handleCancelTrip}

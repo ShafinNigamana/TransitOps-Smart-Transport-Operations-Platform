@@ -27,11 +27,13 @@ import { toast } from "sonner";
 interface MaintenanceViewProps {
   initialRecords: MaintenanceRecord[];
   initialVehicles: Vehicle[];
+  userRole?: string;
 }
 
 export function MaintenanceView({
   initialRecords,
   initialVehicles,
+  userRole = "driver",
 }: MaintenanceViewProps) {
   const [records, setRecords] =
     React.useState<MaintenanceRecord[]>(initialRecords);
@@ -43,6 +45,8 @@ export function MaintenanceView({
   const [isLogOpen, setIsLogOpen] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [isPending, startTransition] = React.useTransition();
+
+  const canWrite = userRole === "fleet_manager";
 
   // Sync client state with server component updates
   React.useEffect(() => {
@@ -136,14 +140,16 @@ export function MaintenanceView({
           </p>
         </div>
 
-        <Button
-          onClick={() => setIsLogOpen(true)}
-          className="shrink-0 font-semibold shadow-sm cursor-pointer"
-          disabled={isPending}
-        >
-          <Plus className="h-4 w-4 mr-1.5" />
-          Log Maintenance
-        </Button>
+        {canWrite && (
+          <Button
+            onClick={() => setIsLogOpen(true)}
+            className="shrink-0 font-semibold shadow-sm cursor-pointer"
+            disabled={isPending}
+          >
+            <Plus className="h-4 w-4 mr-1.5" />
+            Log Maintenance
+          </Button>
+        )}
       </div>
 
       {/* Tabs & Search Filter */}
@@ -181,6 +187,7 @@ export function MaintenanceView({
         <TabsContent value="all" className="mt-4">
           <MaintenanceTable
             records={filterRecords("all")}
+            userRole={userRole}
             onCloseRepair={handleCloseRepair}
           />
         </TabsContent>
@@ -188,6 +195,7 @@ export function MaintenanceView({
         <TabsContent value="open" className="mt-4">
           <MaintenanceTable
             records={filterRecords("open")}
+            userRole={userRole}
             onCloseRepair={handleCloseRepair}
           />
         </TabsContent>
@@ -195,6 +203,7 @@ export function MaintenanceView({
         <TabsContent value="closed" className="mt-4">
           <MaintenanceTable
             records={filterRecords("closed")}
+            userRole={userRole}
             onCloseRepair={handleCloseRepair}
           />
         </TabsContent>

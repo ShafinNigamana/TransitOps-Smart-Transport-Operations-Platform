@@ -28,18 +28,22 @@ interface FuelLogsViewProps {
   initialLogs: FuelLog[];
   initialVehicles: Vehicle[];
   initialTrips: Trip[];
+  userRole?: string;
 }
 
 export function FuelLogsView({
   initialLogs,
   initialVehicles,
   initialTrips,
+  userRole = "driver",
 }: FuelLogsViewProps) {
   const [logs, setLogs] = React.useState<FuelLog[]>(initialLogs);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isLogOpen, setIsLogOpen] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [isPending, startTransition] = React.useTransition();
+
+  const canWrite = userRole === "financial_analyst" || userRole === "driver";
 
   React.useEffect(() => {
     setLogs(initialLogs);
@@ -104,14 +108,16 @@ export function FuelLogsView({
           </p>
         </div>
 
-        <Button
-          onClick={() => setIsLogOpen(true)}
-          className="shrink-0 font-semibold shadow-sm cursor-pointer"
-          disabled={isPending}
-        >
-          <Plus className="h-4 w-4 mr-1.5" />
-          Log Fuel
-        </Button>
+        {canWrite && (
+          <Button
+            onClick={() => setIsLogOpen(true)}
+            className="shrink-0 font-semibold shadow-sm cursor-pointer"
+            disabled={isPending}
+          >
+            <Plus className="h-4 w-4 mr-1.5" />
+            Log Fuel
+          </Button>
+        )}
       </div>
 
       {/* Search Filter */}
