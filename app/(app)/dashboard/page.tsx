@@ -54,6 +54,7 @@ export default async function DashboardPage() {
 
   type FeedRow = {
     id: string;
+    displayId: string;
     source: string;
     destination: string;
     vehicleName: string;
@@ -65,7 +66,8 @@ export default async function DashboardPage() {
   let tripFeed: FeedRow[] = [];
   if (hasLiveTrips) {
     tripFeed = tripsResult.data.map((t) => ({
-      id: t.id.slice(0, 8).toUpperCase(),
+      id: t.id,
+      displayId: t.id.slice(0, 8).toUpperCase(),
       source: t.source,
       destination: t.destination,
       vehicleName: t.vehicle?.name ?? t.vehicle?.registration_number ?? "—",
@@ -279,7 +281,7 @@ export default async function DashboardPage() {
                           className="hover:bg-secondary/30 transition-colors duration-150"
                         >
                           <td className="py-3.5 px-6 font-mono font-medium text-foreground text-xs">
-                            {trip.id}
+                            {trip.displayId}
                           </td>
                           <td className="py-3.5 px-4">
                             <div className="flex items-center gap-1.5 text-foreground font-medium">
