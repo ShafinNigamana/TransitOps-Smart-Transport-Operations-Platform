@@ -47,10 +47,10 @@ export async function logout() {
 const DEMO_PASSWORD = "demo123456";
 
 const DEMO_ACCOUNTS: Record<string, string> = {
-  fleet_manager: "fleet@transitops.demo",
-  driver: "driver@transitops.demo",
-  safety_officer: "safety@transitops.demo",
-  financial_analyst: "finance@transitops.demo",
+  fleet_manager: "fleet@transitops.com",
+  driver: "driver@transitops.com",
+  safety_officer: "safety@transitops.com",
+  financial_analyst: "finance@transitops.com",
 };
 
 export async function demoLogin(role: string) {
