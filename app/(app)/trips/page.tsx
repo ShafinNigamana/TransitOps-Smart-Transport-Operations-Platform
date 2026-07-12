@@ -1,6 +1,7 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { Metadata } from "next";
 import { TripsView } from "@/components/trips/trips-view";
+import { TableSkeleton } from "@/components/shared/loading-skeletons";
 import { createClient } from "@/lib/supabase/server";
 import type { Trip, Vehicle, Driver } from "@/types/database";
 
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 
 export const revalidate = 0; // Disable static cache for live telemetry dashboard
 
-export default async function TripsPage() {
+async function TripsContent() {
   const supabase = await createClient();
 
   // Fetch initial dataset
@@ -30,12 +31,20 @@ export default async function TripsPage() {
   const drivers = (driversRes.data ?? []) as Driver[];
 
   return (
+    <TripsView
+      initialTrips={trips}
+      initialVehicles={vehicles}
+      initialDrivers={drivers}
+    />
+  );
+}
+
+export default function TripsPage() {
+  return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-      <TripsView
-        initialTrips={trips}
-        initialVehicles={vehicles}
-        initialDrivers={drivers}
-      />
+      <Suspense fallback={<TableSkeleton />}>
+        <TripsContent />
+      </Suspense>
     </div>
   );
 }

@@ -1,6 +1,7 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { Metadata } from "next";
 import { ExpensesView } from "@/components/expenses/expenses-view";
+import { TableSkeleton } from "@/components/shared/loading-skeletons";
 import { createClient } from "@/lib/supabase/server";
 import type { Expense, Vehicle } from "@/types/database";
 
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 
 export const revalidate = 0;
 
-export default async function ExpensesPage() {
+async function ExpensesContent() {
   const supabase = await createClient();
 
   const [expensesRes, vehiclesRes] = await Promise.all([
@@ -27,11 +28,19 @@ export default async function ExpensesPage() {
   const vehicles = (vehiclesRes.data ?? []) as Vehicle[];
 
   return (
+    <ExpensesView
+      initialExpenses={expenses}
+      initialVehicles={vehicles}
+    />
+  );
+}
+
+export default function ExpensesPage() {
+  return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-      <ExpensesView
-        initialExpenses={expenses}
-        initialVehicles={vehicles}
-      />
+      <Suspense fallback={<TableSkeleton />}>
+        <ExpensesContent />
+      </Suspense>
     </div>
   );
 }
