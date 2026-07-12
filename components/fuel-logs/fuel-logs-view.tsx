@@ -22,6 +22,7 @@ import type {
 } from "@/types/database";
 import { createFuelLog } from "@/lib/actions/fuel-and-expenses";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface FuelLogsViewProps {
   initialLogs: FuelLog[];

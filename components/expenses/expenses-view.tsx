@@ -18,6 +18,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import type { Expense, Vehicle, CreateExpenseInput } from "@/types/database";
 import { createExpense } from "@/lib/actions/fuel-and-expenses";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface ExpensesViewProps {
   initialExpenses: Expense[];
