@@ -1,11 +1,27 @@
 import { DriverTable } from "@/components/drivers/driver-table";
+import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
+import type { Driver } from "@/types/database";
 
 export const metadata: Metadata = {
   title: "Driver Management — TransitOps",
-  description: "Manage driver roster, track license compliance, and register new drivers.",
+  description: "Manage fleet drivers, safety scores, and licensing compliance.",
 };
 
-export default function DriversPage() {
-  return <DriverTable />;
+export const revalidate = 0; // Live data updates
+
+export default async function DriversPage() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("drivers")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  const drivers = (data ?? []) as Driver[];
+
+  return (
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+      <DriverTable initialDrivers={drivers} />
+    </div>
+  );
 }

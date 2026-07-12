@@ -4,7 +4,6 @@ import * as React from "react";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Badge } from "@/components/ui/badge";
 import type { Driver } from "@/types/database";
-import { differenceInDays, parseISO, format } from "date-fns";
 import { AlertTriangle, ShieldAlert, ShieldCheck } from "lucide-react";
 
 export interface DriverColumnDef {
@@ -16,15 +15,25 @@ export interface DriverColumnDef {
 
 function LicenseExpiryBadge({ expiryDate }: { expiryDate: string }) {
   const today = new Date();
-  const expiry = parseISO(expiryDate);
-  const daysUntilExpiry = differenceInDays(expiry, today);
+  today.setHours(0, 0, 0, 0);
+  const expiry = new Date(expiryDate);
+  expiry.setHours(0, 0, 0, 0);
+
+  const diffTime = expiry.getTime() - today.getTime();
+  const daysUntilExpiry = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  const formattedExpiry = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(expiry);
 
   if (daysUntilExpiry < 0) {
     // Already expired
     return (
       <div className="flex flex-col gap-1">
         <span className="text-sm tabular-nums text-neutral-600 dark:text-neutral-400">
-          {format(expiry, "MMM d, yyyy")}
+          {formattedExpiry}
         </span>
         <Badge variant="danger" className="w-fit">
           <ShieldAlert className="h-3 w-3" />
@@ -39,7 +48,7 @@ function LicenseExpiryBadge({ expiryDate }: { expiryDate: string }) {
     return (
       <div className="flex flex-col gap-1">
         <span className="text-sm tabular-nums text-neutral-600 dark:text-neutral-400">
-          {format(expiry, "MMM d, yyyy")}
+          {formattedExpiry}
         </span>
         <Badge variant="warning" className="w-fit">
           <AlertTriangle className="h-3 w-3" />
@@ -53,7 +62,7 @@ function LicenseExpiryBadge({ expiryDate }: { expiryDate: string }) {
   return (
     <div className="flex flex-col gap-1">
       <span className="text-sm tabular-nums text-neutral-600 dark:text-neutral-400">
-        {format(expiry, "MMM d, yyyy")}
+        {formattedExpiry}
       </span>
       <Badge variant="success" className="w-fit">
         <ShieldCheck className="h-3 w-3" />

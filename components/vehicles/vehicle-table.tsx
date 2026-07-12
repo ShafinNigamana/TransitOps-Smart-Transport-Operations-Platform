@@ -13,8 +13,8 @@ import {
 } from "@/components/ui/table";
 import { vehicleColumns } from "@/components/vehicles/vehicle-columns";
 import { VehicleForm } from "@/components/vehicles/vehicle-form";
-import { MOCK_VEHICLES } from "@/lib/mock-data";
 import type { Vehicle, VehicleStatus } from "@/types/database";
+import { retireVehicle } from "@/lib/actions/vehicles";
 import {
   Search,
   Plus,
@@ -23,7 +23,13 @@ import {
   Truck,
   SlidersHorizontal,
   X,
+  Loader2,
+  Trash2,
 } from "lucide-react";
+
+interface VehicleTableProps {
+  initialVehicles: Vehicle[];
+}
 
 const VEHICLE_STATUSES: { value: VehicleStatus | "all"; label: string; color: string }[] = [
   { value: "all", label: "All", color: "bg-neutral-500" },
@@ -33,23 +39,37 @@ const VEHICLE_STATUSES: { value: VehicleStatus | "all"; label: string; color: st
   { value: "retired", label: "Retired", color: "bg-neutral-400" },
 ];
 
-const REGIONS = ["All Regions", "North Corridor", "South Corridor", "East Port Express", "West Coast Route", "Central Hub", "Southern Coastal"];
+const REGIONS = [
+  "All Regions",
+  "North Corridor",
+  "South Corridor",
+  "East Port Express",
+  "West Coast Route",
+  "Central Hub",
+  "Southern Coastal",
+];
 
 const PAGE_SIZE = 10;
 
-export function VehicleTable() {
-  const [vehicles] = React.useState<Vehicle[]>(MOCK_VEHICLES);
+export function VehicleTable({ initialVehicles }: VehicleTableProps) {
+  const [vehicles, setVehicles] = React.useState<Vehicle[]>(initialVehicles);
   const [search, setSearch] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<VehicleStatus | "all">("all");
   const [regionFilter, setRegionFilter] = React.useState("All Regions");
   const [showFilters, setShowFilters] = React.useState(false);
   const [page, setPage] = React.useState(0);
   const [formOpen, setFormOpen] = React.useState(false);
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+  const [isPending, startTransition] = React.useTransition();
+
+  // Sync state with server component updates
+  React.useEffect(() => {
+    setVehicles(initialVehicles);
+  }, [initialVehicles]);
 
   // Filter logic
   const filtered = React.useMemo(() => {
     return vehicles.filter((v) => {
-      // Search across reg number, name, type
       if (search) {
         const q = search.toLowerCase();
         const matchesSearch =
@@ -58,9 +78,7 @@ export function VehicleTable() {
           v.vehicle_type.toLowerCase().includes(q);
         if (!matchesSearch) return false;
       }
-      // Status filter
       if (statusFilter !== "all" && v.status !== statusFilter) return false;
-      // Region filter
       if (regionFilter !== "All Regions" && v.region !== regionFilter) return false;
       return true;
     });
@@ -71,7 +89,9 @@ export function VehicleTable() {
   const paginatedVehicles = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   // Reset page on filter change
-  React.useEffect(() => { setPage(0); }, [search, statusFilter, regionFilter]);
+  React.useEffect(() => {
+    setPage(0);
+  }, [search, statusFilter, regionFilter]);
 
   // Status counts for filter pills
   const statusCounts = React.useMemo(() => {
@@ -84,8 +104,31 @@ export function VehicleTable() {
 
   const activeFilterCount = (statusFilter !== "all" ? 1 : 0) + (regionFilter !== "All Regions" ? 1 : 0);
 
+  const handleRetireVehicle = (vehicleId: string) => {
+    setErrorMessage(null);
+    startTransition(async () => {
+      const res = await retireVehicle(vehicleId);
+      if (!res.success) {
+        setErrorMessage(res.error.message);
+      }
+    });
+  };
+
   return (
     <div className="space-y-6">
+      {/* Error Message */}
+      {errorMessage && (
+        <div className="flex items-center justify-between rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300">
+          <span>{errorMessage}</span>
+          <button
+            onClick={() => setErrorMessage(null)}
+            className="text-rose-500 hover:text-rose-700 dark:hover:text-rose-200 cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Header Section */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -94,96 +137,94 @@ export function VehicleTable() {
               <Truck className="h-5 w-5" />
             </div>
             Vehicle Registry
+            {isPending && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
           </h1>
           <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
             Manage your fleet — {vehicles.length} vehicles registered
           </p>
         </div>
-        <Button onClick={() => setFormOpen(true)} className="gap-2 shrink-0">
-          <Plus className="h-4 w-4" />
+
+        <Button
+          onClick={() => setFormOpen(true)}
+          className="shrink-0 font-semibold shadow-sm cursor-pointer"
+          disabled={isPending}
+        >
+          <Plus className="h-4 w-4 mr-1.5" />
           New Vehicle
         </Button>
       </div>
 
-      {/* Search + Filter Bar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+      {/* Toolbar */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-neutral-400" />
           <Input
-            placeholder="Search by plate, model, or type…"
+            placeholder="Search vehicle model, reg #, type..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
           />
-          {search && (
-            <button
-              onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
-            >
-              <X className="h-3.5 w-3.5 text-neutral-400" />
-            </button>
-          )}
         </div>
 
-        <Button
-          variant={showFilters ? "secondary" : "outline"}
-          size="sm"
-          onClick={() => setShowFilters(!showFilters)}
-          className="gap-2"
-        >
-          <SlidersHorizontal className="h-3.5 w-3.5" />
-          Filters
-          {activeFilterCount > 0 && (
-            <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
-              {activeFilterCount}
-            </span>
-          )}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowFilters(!showFilters)}
+            className={`gap-1.5 cursor-pointer ${showFilters ? "bg-neutral-100 dark:bg-neutral-800" : ""}`}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="ml-1 rounded-full bg-blue-500 px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">
+                {activeFilterCount}
+              </span>
+            )}
+          </Button>
+        </div>
       </div>
 
-      {/* Expandable Filter Panel */}
+      {/* Filters Panel */}
       {showFilters && (
-        <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
-          {/* Status Filter Pills */}
+        <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/30 p-4 space-y-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-2.5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-neutral-400 dark:text-neutral-500 block mb-2.5">
               Status
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {VEHICLE_STATUSES.map((s) => {
-                const isActive = statusFilter === s.value;
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {VEHICLE_STATUSES.map((status) => {
+                const count = statusCounts[status.value] ?? 0;
+                const isActive = statusFilter === status.value;
                 return (
                   <button
-                    key={s.value}
-                    onClick={() => setStatusFilter(s.value)}
-                    className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 ${
+                    key={status.value}
+                    onClick={() => setStatusFilter(status.value)}
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-150 cursor-pointer ${
                       isActive
                         ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 shadow-sm"
                         : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700"
                     }`}
                   >
-                    <span className={`h-2 w-2 rounded-full ${s.color}`} />
-                    {s.label}
-                    <span className="tabular-nums opacity-70">{statusCounts[s.value] ?? 0}</span>
+                    <span className={`h-1.5 w-1.5 rounded-full ${status.color}`} />
+                    {status.label}
+                    <span className="text-[10px] opacity-60">({count})</span>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Region Filter */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-2.5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-neutral-400 dark:text-neutral-500 block mb-2.5">
               Region
-            </p>
-            <div className="flex flex-wrap gap-2">
+            </span>
+            <div className="flex flex-wrap gap-1.5">
               {REGIONS.map((r) => {
                 const isActive = regionFilter === r;
                 return (
                   <button
                     key={r}
                     onClick={() => setRegionFilter(r)}
-                    className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-150 ${
+                    className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-150 cursor-pointer ${
                       isActive
                         ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 shadow-sm"
                         : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700"
@@ -196,14 +237,13 @@ export function VehicleTable() {
             </div>
           </div>
 
-          {/* Clear Filters */}
           {activeFilterCount > 0 && (
             <button
               onClick={() => {
                 setStatusFilter("all");
                 setRegionFilter("All Regions");
               }}
-              className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+              className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
             >
               Clear all filters
             </button>
@@ -224,12 +264,15 @@ export function VehicleTable() {
                   {col.label}
                 </TableHead>
               ))}
+              <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                Actions
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedVehicles.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={vehicleColumns.length} className="h-32 text-center">
+                <TableCell colSpan={vehicleColumns.length + 1} className="h-32 text-center">
                   <div className="flex flex-col items-center gap-2 text-neutral-400 dark:text-neutral-500">
                     <Truck className="h-8 w-8 opacity-50" />
                     <p className="text-sm font-medium">No vehicles found</p>
@@ -254,6 +297,29 @@ export function VehicleTable() {
                         : String(vehicle[col.key as keyof Vehicle] ?? "—")}
                     </TableCell>
                   ))}
+                  <TableCell className="text-right">
+                    {vehicle.status === "retired" ? (
+                      <span className="text-xs text-neutral-400 italic">Retired</span>
+                    ) : vehicle.status === "on_trip" ? (
+                      <span className="text-xs text-neutral-400 italic" title="Cannot retire vehicle currently on a trip">
+                        On active trip
+                      </span>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={isPending}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRetireVehicle(vehicle.id);
+                        }}
+                        className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 border-rose-500/20 hover:border-rose-500/30 gap-1 h-7 px-2.5 cursor-pointer"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Retire
+                      </Button>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))
             )}
@@ -273,7 +339,7 @@ export function VehicleTable() {
                 size="icon"
                 disabled={page === 0}
                 onClick={() => setPage((p) => p - 1)}
-                className="h-8 w-8"
+                className="h-8 w-8 cursor-pointer"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -281,7 +347,7 @@ export function VehicleTable() {
                 <button
                   key={i}
                   onClick={() => setPage(i)}
-                  className={`h-8 w-8 rounded-lg text-xs font-semibold transition-colors ${
+                  className={`h-8 w-8 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                     page === i
                       ? "bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
                       : "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
@@ -295,7 +361,7 @@ export function VehicleTable() {
                 size="icon"
                 disabled={page >= totalPages - 1}
                 onClick={() => setPage((p) => p + 1)}
-                className="h-8 w-8"
+                className="h-8 w-8 cursor-pointer"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
