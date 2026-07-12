@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Search, Truck } from "lucide-react";
+import { Plus, Search, Truck, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,17 +17,30 @@ import {
   CreateTripInput,
   Trip,
   TripStatus,
+  Vehicle,
+  Driver,
 } from "@/types/database";
 import {
-  MOCK_DRIVERS,
-  MOCK_TRIPS,
-  MOCK_VEHICLES,
-} from "@/lib/mock-data";
+  createTrip,
+  dispatchTrip,
+  completeTrip,
+  cancelTrip,
+} from "@/lib/actions/trips";
 
-export function TripsView() {
-  const [trips, setTrips] = React.useState<Trip[]>(MOCK_TRIPS);
-  const [vehicles, setVehicles] = React.useState(MOCK_VEHICLES);
-  const [drivers, setDrivers] = React.useState(MOCK_DRIVERS);
+interface TripsViewProps {
+  initialTrips: Trip[];
+  initialVehicles: Vehicle[];
+  initialDrivers: Driver[];
+}
+
+export function TripsView({
+  initialTrips,
+  initialVehicles,
+  initialDrivers,
+}: TripsViewProps) {
+  const [trips, setTrips] = React.useState<Trip[]>(initialTrips);
+  const [vehicles, setVehicles] = React.useState<Vehicle[]>(initialVehicles);
+  const [drivers, setDrivers] = React.useState<Driver[]>(initialDrivers);
 
   const [activeTab, setActiveTab] = React.useState<TripStatus>("draft");
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -36,82 +49,42 @@ export function TripsView() {
   const [selectedTripForComplete, setSelectedTripForComplete] =
     React.useState<Trip | null>(null);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+  const [isPending, startTransition] = React.useTransition();
 
-  // Handlers
+  // Keep state synchronized with server props updates
+  React.useEffect(() => {
+    setTrips(initialTrips);
+  }, [initialTrips]);
+
+  React.useEffect(() => {
+    setVehicles(initialVehicles);
+  }, [initialVehicles]);
+
+  React.useEffect(() => {
+    setDrivers(initialDrivers);
+  }, [initialDrivers]);
+
+  // Handlers using server actions and transitions
   const handleCreateTrip = (input: CreateTripInput) => {
-    const vehicle = vehicles.find((v) => v.id === input.vehicle_id);
-    const driver = drivers.find((d) => d.id === input.driver_id);
-
-    const newTrip: Trip = {
-      id: `trp-${Date.now()}`,
-      trip_code: `TRP-${1000 + trips.length + 1}`,
-      source: input.source,
-      destination: input.destination,
-      cargo_weight_kg: input.cargo_weight_kg,
-      planned_distance_km: input.planned_distance_km,
-      vehicle_id: input.vehicle_id,
-      vehicle,
-      driver_id: input.driver_id,
-      driver,
-      status: "draft",
-      created_at: new Date().toISOString(),
-    };
-
-    setTrips((prev) => [newTrip, ...prev]);
-    setActiveTab("draft");
     setErrorMessage(null);
+    startTransition(async () => {
+      const res = await createTrip(input);
+      if (res.success) {
+        setIsNewTripOpen(false);
+      } else {
+        setErrorMessage(res.error.message);
+      }
+    });
   };
 
   const handleDispatchTrip = (tripId: string) => {
-    const trip = trips.find((t) => t.id === tripId);
-    if (!trip) return;
-
-    const vehicle = vehicles.find((v) => v.id === trip.vehicle_id);
-    const driver = drivers.find((d) => d.id === trip.driver_id);
-
-    if (vehicle && vehicle.status !== "available") {
-      setErrorMessage(
-        `Cannot dispatch trip: Vehicle ${vehicle.name} is currently '${vehicle.status}'.`
-      );
-      return;
-    }
-    if (driver && driver.status !== "available") {
-      setErrorMessage(
-        `Cannot dispatch trip: Driver ${driver.full_name} is currently '${driver.status}'.`
-      );
-      return;
-    }
-    if (driver && new Date(driver.license_expiry_date) < new Date()) {
-      setErrorMessage(
-        `Cannot dispatch trip: Driver ${driver.full_name}'s license expired on ${driver.license_expiry_date}.`
-      );
-      return;
-    }
-
     setErrorMessage(null);
-
-    setTrips((prev) =>
-      prev.map((t) => {
-        if (t.id !== tripId) return t;
-        return {
-          ...t,
-          status: "dispatched",
-          dispatched_at: new Date().toISOString(),
-        };
-      })
-    );
-
-    // Also update vehicle and driver status to 'on_trip'
-    setVehicles((prev) =>
-      prev.map((v) =>
-        v.id === trip.vehicle_id ? { ...v, status: "on_trip" } : v
-      )
-    );
-    setDrivers((prev) =>
-      prev.map((d) =>
-        d.id === trip.driver_id ? { ...d, status: "on_trip" } : d
-      )
-    );
+    startTransition(async () => {
+      const res = await dispatchTrip(tripId);
+      if (!res.success) {
+        setErrorMessage(res.error.message);
+      }
+    });
   };
 
   const handleCompleteTrip = (
@@ -121,69 +94,29 @@ export function TripsView() {
     if (!selectedTripForComplete) return;
     const tripId = selectedTripForComplete.id;
 
-    setTrips((prev) =>
-      prev.map((t) => {
-        if (t.id !== tripId) return t;
-        return {
-          ...t,
-          status: "completed",
-          actual_distance_km: actualDistanceKm,
-          fuel_consumed_l: fuelConsumedL,
-          completed_at: new Date().toISOString(),
-        };
-      })
-    );
-
-    // Free up vehicle and driver
-    setVehicles((prev) =>
-      prev.map((v) =>
-        v.id === selectedTripForComplete.vehicle_id
-          ? {
-              ...v,
-              status: "available",
-              odometer_km: v.odometer_km + actualDistanceKm,
-            }
-          : v
-      )
-    );
-    setDrivers((prev) =>
-      prev.map((d) =>
-        d.id === selectedTripForComplete.driver_id
-          ? { ...d, status: "available" }
-          : d
-      )
-    );
-
-    setSelectedTripForComplete(null);
+    setErrorMessage(null);
+    startTransition(async () => {
+      const res = await completeTrip({
+        trip_id: tripId,
+        actual_distance_km: actualDistanceKm,
+        fuel_consumed_l: fuelConsumedL,
+      });
+      if (res.success) {
+        setSelectedTripForComplete(null);
+      } else {
+        setErrorMessage(res.error.message);
+      }
+    });
   };
 
   const handleCancelTrip = (tripId: string) => {
-    const trip = trips.find((t) => t.id === tripId);
-    const wasDispatched = trip?.status === "dispatched";
-
-    setTrips((prev) =>
-      prev.map((t) => {
-        if (t.id !== tripId) return t;
-        return {
-          ...t,
-          status: "cancelled",
-          cancelled_at: new Date().toISOString(),
-        };
-      })
-    );
-
-    if (wasDispatched && trip) {
-      setVehicles((prev) =>
-        prev.map((v) =>
-          v.id === trip.vehicle_id ? { ...v, status: "available" } : v
-        )
-      );
-      setDrivers((prev) =>
-        prev.map((d) =>
-          d.id === trip.driver_id ? { ...d, status: "available" } : d
-        )
-      );
-    }
+    setErrorMessage(null);
+    startTransition(async () => {
+      const res = await cancelTrip(tripId);
+      if (!res.success) {
+        setErrorMessage(res.error.message);
+      }
+    });
   };
 
   // Filter trips by active status tab and search query
@@ -218,7 +151,7 @@ export function TripsView() {
           <span>{errorMessage}</span>
           <button
             onClick={() => setErrorMessage(null)}
-            className="text-rose-500 hover:text-rose-700 dark:hover:text-rose-200"
+            className="text-rose-500 hover:text-rose-700 dark:hover:text-rose-200 cursor-pointer"
           >
             ✕
           </button>
@@ -232,8 +165,9 @@ export function TripsView() {
             <div className="h-9 w-9 rounded-xl bg-blue-600/10 dark:bg-blue-500/15 flex items-center justify-center text-blue-600 dark:text-blue-400">
               <Truck className="h-5 w-5" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
+            <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
               Trip Management
+              {isPending && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
             </h1>
           </div>
           <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
@@ -244,7 +178,8 @@ export function TripsView() {
 
         <Button
           onClick={() => setIsNewTripOpen(true)}
-          className="shrink-0 font-semibold shadow-sm"
+          className="shrink-0 font-semibold shadow-sm cursor-pointer"
+          disabled={isPending}
         >
           <Plus className="h-4 w-4 mr-1.5" />
           New Trip
@@ -325,8 +260,8 @@ export function TripsView() {
       <TripForm
         open={isNewTripOpen}
         onOpenChange={setIsNewTripOpen}
-        vehicles={vehicles}
-        drivers={drivers}
+        vehicles={vehicles.filter((v) => v.status === "available")} // Only show available vehicles in form
+        drivers={drivers.filter((d) => d.status === "available")} // Only show available drivers in form
         onSubmit={handleCreateTrip}
       />
 
