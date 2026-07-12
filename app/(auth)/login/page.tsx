@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { login, demoLogin } from "@/lib/actions/auth";
+import { Button } from "@/components/ui/button";
 import {
   Mail,
   Lock,
@@ -20,36 +21,36 @@ const DEMO_PERSONAS = [
     label: "Fleet Manager",
     description: "Vehicle registry & maintenance",
     icon: Truck,
-    color: "text-blue-500",
-    bg: "bg-blue-500/10",
-    border: "border-blue-500/20 hover:border-blue-500/50",
+    color: "text-fleet-amber",
+    bg: "bg-fleet-amber/10",
+    border: "border-fleet-amber/20 hover:border-fleet-amber/50",
   },
   {
     role: "driver",
     label: "Driver",
     description: "Trip dispatch & completion",
     icon: Route,
-    color: "text-emerald-500",
-    bg: "bg-emerald-500/10",
-    border: "border-emerald-500/20 hover:border-emerald-500/50",
+    color: "text-fleet-teal",
+    bg: "bg-fleet-teal/10",
+    border: "border-fleet-teal/20 hover:border-fleet-teal/50",
   },
   {
     role: "safety_officer",
     label: "Safety Officer",
     description: "Driver compliance & licensing",
     icon: ShieldCheck,
-    color: "text-amber-500",
-    bg: "bg-amber-500/10",
-    border: "border-amber-500/20 hover:border-amber-500/50",
+    color: "text-fleet-ochre",
+    bg: "bg-fleet-ochre/10",
+    border: "border-fleet-ochre/20 hover:border-fleet-ochre/50",
   },
   {
     role: "financial_analyst",
     label: "Financial Analyst",
     description: "Fuel, expenses & ROI reports",
     icon: BarChart3,
-    color: "text-violet-500",
-    bg: "bg-violet-500/10",
-    border: "border-violet-500/20 hover:border-violet-500/50",
+    color: "text-muted-foreground",
+    bg: "bg-muted/10",
+    border: "border-border hover:border-muted-foreground/50",
   },
 ] as const;
 
@@ -154,10 +155,10 @@ export default function LoginPage() {
           </div>
 
           {/* Submit Button */}
-          <button
+          <Button
             type="submit"
             disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-foreground px-4 py-2.5 text-sm font-semibold text-background transition-opacity duration-150 hover:opacity-90 disabled:opacity-50 cursor-pointer"
+            className="w-full h-11"
           >
             {loading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -165,7 +166,7 @@ export default function LoginPage() {
               <LogIn className="h-4 w-4" />
             )}
             <span>{loading ? "Signing in…" : "Sign in"}</span>
-          </button>
+          </Button>
         </form>
       </div>
 
