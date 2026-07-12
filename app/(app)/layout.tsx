@@ -4,8 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
-import { cn } from "@/lib/utils";
-import { logout, demoLogin } from "@/lib/actions/auth";
+import { logout } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/client";
 import {
   LayoutDashboard,
@@ -21,7 +20,6 @@ import {
   Shield,
   LogOut,
   User,
-  ChevronDown,
 } from "lucide-react";
 
 interface NavItem {
@@ -50,20 +48,6 @@ export default function AppLayout({
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [userRole, setUserRole] = React.useState<string>("fleet_manager");
   const [fullName, setFullName] = React.useState<string>("Operator");
-  const [switching, setSwitching] = React.useState(false);
-  const [dropdownOpen, setDropdownOpen] = React.useState(false);
-  const dropdownRef = React.useRef<HTMLDivElement>(null);
-
-  // Close dropdown on click outside
-  React.useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDropdownOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   // Load user profile on mount
   React.useEffect(() => {
@@ -98,25 +82,6 @@ export default function AppLayout({
     }
     loadProfile();
   }, []);
-
-  // Roles for RBAC switching
-  const roles = [
-    { value: "fleet_manager", label: "Fleet Manager" },
-    { value: "driver", label: "Driver" },
-    { value: "safety_officer", label: "Safety Officer" },
-    { value: "financial_analyst", label: "Financial Analyst" },
-  ];
-
-  const handleRoleChange = async (targetRole: string) => {
-    setSwitching(true);
-    try {
-      await demoLogin(targetRole);
-    } catch (err) {
-      console.error("Failed to switch persona:", err);
-    } finally {
-      setSwitching(false);
-    }
-  };
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -220,61 +185,6 @@ export default function AppLayout({
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Persona Switcher for Hackathon Testing */}
-            <div className="flex items-center gap-2" ref={dropdownRef}>
-              <span className="text-xs text-muted-foreground hidden sm:inline-block font-medium">
-                Persona:
-              </span>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                  disabled={switching}
-                  className="flex items-center gap-2 bg-secondary hover:bg-secondary/80 border border-border rounded-md px-3 py-1.5 text-xs font-semibold text-foreground transition-all duration-150 cursor-pointer disabled:opacity-50"
-                >
-                  <span className={cn(
-                    "h-2 w-2 rounded-full transition-colors duration-150 shrink-0",
-                    userRole === "fleet_manager" && "bg-fleet-amber",
-                    userRole === "driver" && "bg-fleet-teal",
-                    userRole === "safety_officer" && "bg-fleet-ochre",
-                    userRole === "financial_analyst" && "bg-muted-foreground"
-                  )} />
-                  <span>
-                    {roles.find(r => r.value === userRole)?.label || "Select Persona"}
-                  </span>
-                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0 ml-0.5" />
-                </button>
-
-                {dropdownOpen && (
-                  <div className="absolute right-0 mt-1.5 w-44 rounded-lg border border-border bg-card p-1 shadow-lg z-50 animate-in fade-in-0 slide-in-from-top-1 duration-100">
-                    {roles.map((r) => (
-                      <button
-                        key={r.value}
-                        type="button"
-                        onClick={() => {
-                          handleRoleChange(r.value);
-                          setDropdownOpen(false);
-                        }}
-                        className={cn(
-                          "flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-medium transition-colors hover:bg-secondary cursor-pointer",
-                          userRole === r.value ? "text-foreground font-semibold bg-secondary/60" : "text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        <span className={cn(
-                          "h-2 w-2 rounded-full shrink-0",
-                          r.value === "fleet_manager" && "bg-fleet-amber",
-                          r.value === "driver" && "bg-fleet-teal",
-                          r.value === "safety_officer" && "bg-fleet-ochre",
-                          r.value === "financial_analyst" && "bg-muted-foreground"
-                        )} />
-                        <span>{r.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
             <ThemeToggle />
           </div>
         </header>
