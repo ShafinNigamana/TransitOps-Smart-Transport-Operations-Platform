@@ -39,10 +39,11 @@
 ## ⚠️ The Problem
 
 Logistics operators frequently manage fleet assets, drivers, dispatches, maintenance, and operational expenses across disconnected spreadsheets and physical paper logs. This fragmentation causes several critical operational failures:
-* **Double-Bookings:** Lack of real-time visibility leads to dispatchers assigning the same driver or vehicle to concurrent runs.
-* **Grounded Dispatches:** Vehicles that are retired or actively undergoing repairs in the workshop show up as "available" in static systems and get assigned to trips.
-* **Compliance Risks:** Drivers with expired licenses or active suspensions are dispatched because compliance audits live in filing cabinets rather than at the dispatch gateway.
-* **Siloed Costs & Blindspots:** Fuel spend, maintenance invoices, and miscellaneous trip expenses are tracked in isolated sheets, preventing a unified calculation of vehicle ROI or fleet-wide utilization.
+
+- **Double-Bookings:** Lack of real-time visibility leads to dispatchers assigning the same driver or vehicle to concurrent runs.
+- **Grounded Dispatches:** Vehicles that are retired or actively undergoing repairs in the workshop show up as "available" in static systems and get assigned to trips.
+- **Compliance Risks:** Drivers with expired licenses or active suspensions are dispatched because compliance audits live in filing cabinets rather than at the dispatch gateway.
+- **Siloed Costs & Blindspots:** Fuel spend, maintenance invoices, and miscellaneous trip expenses are tracked in isolated sheets, preventing a unified calculation of vehicle ROI or fleet-wide utilization.
 
 ---
 
@@ -50,10 +51,10 @@ Logistics operators frequently manage fleet assets, drivers, dispatches, mainten
 
 **TransitOps** provides a unified, real-time command cockpit that guarantees operational integrity by enforcing compliance and business rules server-side before writes occur.
 
-* **Vehicles Module:** A live registry monitoring availability, capacity thresholds, active locations, and odometer logs.
-* **Trips & Dispatch Module:** An atomic dispatch controller that locks assets and enforces weight and licensing rules during creation and execution.
-* **Maintenance Module:** A workshop tracking registry that grounds vehicles immediately when repair tickets open and releases them only upon verified closure.
-* **Financials & Analytics:** Direct entry portals for fuel logs and expenses, feeding live charts, KPI cards, and dynamic Vehicle ROI sheets.
+- **Vehicles Module:** A live registry monitoring availability, capacity thresholds, active locations, and odometer logs.
+- **Trips & Dispatch Module:** An atomic dispatch controller that locks assets and enforces weight and licensing rules during creation and execution.
+- **Maintenance Module:** A workshop tracking registry that grounds vehicles immediately when repair tickets open and releases them only upon verified closure.
+- **Financials & Analytics:** Direct entry portals for fuel logs and expenses, feeding live charts, KPI cards, and dynamic Vehicle ROI sheets.
 
 ---
 
@@ -297,6 +298,7 @@ CREATE TABLE public.expenses (
 Asset availability and trip progression are restricted to verified status transitions:
 
 ### Vehicle Status Lifecycle
+
 ```mermaid
 stateDiagram-v2
     [*] --> available
@@ -311,6 +313,7 @@ stateDiagram-v2
 ```
 
 ### Driver Status Lifecycle
+
 ```mermaid
 stateDiagram-v2
     [*] --> available
@@ -324,6 +327,7 @@ stateDiagram-v2
 ```
 
 ### Trip Status Lifecycle
+
 ```mermaid
 stateDiagram-v2
     [*] --> draft
@@ -344,26 +348,30 @@ The `dispatchTrip` Server Action runs validations against the database before ex
 ```mermaid
 sequenceDiagram
     autonumber
-    Client Component->>+dispatchTrip Action: Invoke with tripId
-    dispatchTrip Action->>+Database: Fetch Trip Status, Vehicle ID & Driver ID
-    Database-->>-dispatchTrip Action: Trip data
+  participant ClientComponent as Client Component
+  participant DispatchTripAction as dispatchTrip Action
+  participant Database
+
+  ClientComponent->>+DispatchTripAction: Invoke with tripId
+  DispatchTripAction->>+Database: Fetch Trip Status, Vehicle ID & Driver ID
+  Database-->>-DispatchTripAction: Trip data
     alt Trip is not 'draft'
-        dispatchTrip Action-->>Client Component: Return error INVALID_STATUS
+    DispatchTripAction-->>ClientComponent: Return error INVALID_STATUS
     end
-    dispatchTrip Action->>+Database: Fetch Vehicle & Driver current status & details
-    Database-->>-dispatchTrip Action: Vehicle & Driver rows
+  DispatchTripAction->>+Database: Fetch Vehicle and Driver current status and details
+  Database-->>-DispatchTripAction: Vehicle and Driver rows
     alt Vehicle is not 'available'
-        dispatchTrip Action-->>Client Component: Return error VEHICLE_UNAVAILABLE
+    DispatchTripAction-->>ClientComponent: Return error VEHICLE_UNAVAILABLE
     alt Driver is not 'available'
-        dispatchTrip Action-->>Client Component: Return error DRIVER_UNAVAILABLE
+    DispatchTripAction-->>ClientComponent: Return error DRIVER_UNAVAILABLE
     alt Driver license expires within 30 days
-        dispatchTrip Action-->>Client Component: Return error EXPIRED_LICENSE
+    DispatchTripAction-->>ClientComponent: Return error EXPIRED_LICENSE
     end
-    dispatchTrip Action->>+Database: Update vehicle status -> 'on_trip'
-    dispatchTrip Action->>Database: Update driver status -> 'on_trip'
-    dispatchTrip Action->>Database: Update trip status -> 'dispatched', set dispatched_at = now()
-    Database-->>-dispatchTrip Action: Transaction success
-    dispatchTrip Action->>Client Component: Return success with updated Trip data & revalidatePath()
+  DispatchTripAction->>+Database: Update vehicle status to on_trip
+  DispatchTripAction->>Database: Update driver status to on_trip
+  DispatchTripAction->>Database: Update trip status to dispatched and set dispatched_at = now()
+  Database-->>-DispatchTripAction: Transaction success
+  DispatchTripAction->>ClientComponent: Return success with updated Trip data and trigger revalidation
 ```
 
 ---
@@ -372,18 +380,18 @@ sequenceDiagram
 
 The following core business rules are validated inside the Server Action layers to guarantee that database records are accurate and consistent:
 
-| Rule | Description | Primary Enforcement File | Database Constraint / RLS |
-| :--- | :--- | :--- | :--- |
-| **Rule 1: Reg Format & Uniqueness** | Vehicle registration must match `^[A-Za-z0-9-]{2,20}$` and be globally unique. | [lib/actions/vehicles.ts](file:///d:/MyProject/ODOO/transitops/lib/actions/vehicles.ts) | `UNIQUE` constraint, `CHECK (registration_number ~ '...')` |
-| **Rule 2: Cargo Weight Guard** | Cargo weight cannot exceed the selected vehicle's maximum weight capacity. | [lib/actions/trips.ts](file:///d:/MyProject/ODOO/transitops/lib/actions/trips.ts) | `CHECK (cargo_weight_kg > 0)` |
-| **Rule 3: Workshop/Retired Exclusions** | 'In Shop' and 'Retired' vehicles are excluded from trip selectors and cannot be dispatched. | [lib/actions/trips.ts](file:///d:/MyProject/ODOO/transitops/lib/actions/trips.ts) | State check queries inside actions |
-| **Rule 4: Driver Compliance Check** | Exclude drivers with expired, soon-to-expire (<30 days), suspended, or off-duty status from dispatches. | [lib/actions/trips.ts](file:///d:/MyProject/ODOO/transitops/lib/actions/trips.ts) | Expiry check & status check queries |
-| **Rule 5: Double-Booking Prevention** | Prevent dispatching if the vehicle or driver is already assigned to an active trip. | [lib/actions/trips.ts](file:///d:/MyProject/ODOO/transitops/lib/actions/trips.ts) | Asset status validation in `dispatchTrip` |
-| **Rule 6: Dispatch Transition** | Dispatching moves the trip to `dispatched` and locks vehicle/driver status to `on_trip`. | [lib/actions/trips.ts](file:///d:/MyProject/ODOO/transitops/lib/actions/trips.ts) | Wrapped inside sequential execution block |
-| **Rule 7: Completion Odometer** | Completing a trip releases assets to `available`, logs actual fuel, and increments vehicle odometer. | [lib/actions/trips.ts](file:///d:/MyProject/ODOO/transitops/lib/actions/trips.ts) | `CHECK (actual_distance_km >= 0)` |
-| **Rule 8: Dispatch Cancellation** | Cancelling an active trip sets status to `cancelled` and immediately releases assets. | [lib/actions/trips.ts](file:///d:/MyProject/ODOO/transitops/lib/actions/trips.ts) | State restoration queries |
-| **Rule 9: Maintenance Grounding** | Creating an open maintenance ticket sets vehicle status to `in_shop` (disallowed if vehicle is `on_trip`). | [lib/actions/maintenance.ts](file:///d:/MyProject/ODOO/transitops/lib/actions/maintenance.ts) | Status check inside Server Action |
-| **Rule 10: Maintenance Release** | Closing maintenance releases the vehicle to `available` (unless the vehicle has been retired). | [lib/actions/maintenance.ts](file:///d:/MyProject/ODOO/transitops/lib/actions/maintenance.ts) | Status restoration logic |
+| Rule                                    | Description                                                                                                | Primary Enforcement File                                                                      | Database Constraint / RLS                                  |
+| :-------------------------------------- | :--------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------- | :--------------------------------------------------------- |
+| **Rule 1: Reg Format & Uniqueness**     | Vehicle registration must match `^[A-Za-z0-9-]{2,20}$` and be globally unique.                             | [lib/actions/vehicles.ts](file:///d:/MyProject/ODOO/transitops/lib/actions/vehicles.ts)       | `UNIQUE` constraint, `CHECK (registration_number ~ '...')` |
+| **Rule 2: Cargo Weight Guard**          | Cargo weight cannot exceed the selected vehicle's maximum weight capacity.                                 | [lib/actions/trips.ts](file:///d:/MyProject/ODOO/transitops/lib/actions/trips.ts)             | `CHECK (cargo_weight_kg > 0)`                              |
+| **Rule 3: Workshop/Retired Exclusions** | 'In Shop' and 'Retired' vehicles are excluded from trip selectors and cannot be dispatched.                | [lib/actions/trips.ts](file:///d:/MyProject/ODOO/transitops/lib/actions/trips.ts)             | State check queries inside actions                         |
+| **Rule 4: Driver Compliance Check**     | Exclude drivers with expired, soon-to-expire (<30 days), suspended, or off-duty status from dispatches.    | [lib/actions/trips.ts](file:///d:/MyProject/ODOO/transitops/lib/actions/trips.ts)             | Expiry check & status check queries                        |
+| **Rule 5: Double-Booking Prevention**   | Prevent dispatching if the vehicle or driver is already assigned to an active trip.                        | [lib/actions/trips.ts](file:///d:/MyProject/ODOO/transitops/lib/actions/trips.ts)             | Asset status validation in `dispatchTrip`                  |
+| **Rule 6: Dispatch Transition**         | Dispatching moves the trip to `dispatched` and locks vehicle/driver status to `on_trip`.                   | [lib/actions/trips.ts](file:///d:/MyProject/ODOO/transitops/lib/actions/trips.ts)             | Wrapped inside sequential execution block                  |
+| **Rule 7: Completion Odometer**         | Completing a trip releases assets to `available`, logs actual fuel, and increments vehicle odometer.       | [lib/actions/trips.ts](file:///d:/MyProject/ODOO/transitops/lib/actions/trips.ts)             | `CHECK (actual_distance_km >= 0)`                          |
+| **Rule 8: Dispatch Cancellation**       | Cancelling an active trip sets status to `cancelled` and immediately releases assets.                      | [lib/actions/trips.ts](file:///d:/MyProject/ODOO/transitops/lib/actions/trips.ts)             | State restoration queries                                  |
+| **Rule 9: Maintenance Grounding**       | Creating an open maintenance ticket sets vehicle status to `in_shop` (disallowed if vehicle is `on_trip`). | [lib/actions/maintenance.ts](file:///d:/MyProject/ODOO/transitops/lib/actions/maintenance.ts) | Status check inside Server Action                          |
+| **Rule 10: Maintenance Release**        | Closing maintenance releases the vehicle to `available` (unless the vehicle has been retired).             | [lib/actions/maintenance.ts](file:///d:/MyProject/ODOO/transitops/lib/actions/maintenance.ts) | Status restoration logic                                   |
 
 ---
 
@@ -391,29 +399,29 @@ The following core business rules are validated inside the Server Action layers 
 
 RBAC controls are verified via Next.js Middleware redirects and enforced inside database Row Level Security (RLS) policies.
 
-| Module / Action | Fleet Manager | Driver | Safety Officer | Financial Analyst |
-| :--- | :---: | :---: | :---: | :---: |
-| **Vehicles (Create/Update/Retire)** | **Allowed** | Read-Only | Read-Only | Read-Only |
-| **Drivers (Create/Update/Suspend)** | **Allowed** | Read-Only | **Allowed** | Read-Only |
-| **Trips (Create/Dispatch/Complete)** | Dispatch/Cancel | **Full Access** | Read-Only | Read-Only |
-| **Maintenance (Open/Close)** | **Allowed** | No Access | Read-Only | Read-Only |
-| **Fuel Logs (Create/Read/Edit)** | Read-Only | Create / Read | No Access | **Full Access** |
-| **Expenses (Create/Read/Edit)** | Read-Only | Create / Read | No Access | **Full Access** |
-| **Analytics & CSV Export** | Read-Only | No Access | Read-Only | **Full Access** |
+| Module / Action                      |  Fleet Manager  |     Driver      | Safety Officer | Financial Analyst |
+| :----------------------------------- | :-------------: | :-------------: | :------------: | :---------------: |
+| **Vehicles (Create/Update/Retire)**  |   **Allowed**   |    Read-Only    |   Read-Only    |     Read-Only     |
+| **Drivers (Create/Update/Suspend)**  |   **Allowed**   |    Read-Only    |  **Allowed**   |     Read-Only     |
+| **Trips (Create/Dispatch/Complete)** | Dispatch/Cancel | **Full Access** |   Read-Only    |     Read-Only     |
+| **Maintenance (Open/Close)**         |   **Allowed**   |    No Access    |   Read-Only    |     Read-Only     |
+| **Fuel Logs (Create/Read/Edit)**     |    Read-Only    |  Create / Read  |   No Access    |  **Full Access**  |
+| **Expenses (Create/Read/Edit)**      |    Read-Only    |  Create / Read  |   No Access    |  **Full Access**  |
+| **Analytics & CSV Export**           |    Read-Only    |    No Access    |   Read-Only    |  **Full Access**  |
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology | Reason |
-| :--- | :--- | :--- |
-| **Framework** | Next.js 16.2.10 (App Router) | Native support for Server Components, layout isolation, and server actions. |
-| **Language** | TypeScript 5.0 | Enforces static type definitions across database models and inputs. |
-| **Styling** | Tailwind CSS v4 | Provides atomic utility classes and configuration. |
-| **UI Primitive** | shadcn/ui (Radix UI) | Accessible, unstyled primitives customizable via tailwind configurations. |
-| **Visualizations** | Recharts 3.9.2 | Renders declarative charts directly inside client containers. |
-| **Database** | PostgreSQL | Local relational database for transactional queries and trigger integrations. |
-| **Validations** | Zod 4.4.3 | Shared schemas for form input and Server Action validation. |
+| Layer              | Technology                   | Reason                                                                        |
+| :----------------- | :--------------------------- | :---------------------------------------------------------------------------- |
+| **Framework**      | Next.js 16.2.10 (App Router) | Native support for Server Components, layout isolation, and server actions.   |
+| **Language**       | TypeScript 5.0               | Enforces static type definitions across database models and inputs.           |
+| **Styling**        | Tailwind CSS v4              | Provides atomic utility classes and configuration.                            |
+| **UI Primitive**   | shadcn/ui (Radix UI)         | Accessible, unstyled primitives customizable via tailwind configurations.     |
+| **Visualizations** | Recharts 3.9.2               | Renders declarative charts directly inside client containers.                 |
+| **Database**       | PostgreSQL                   | Local relational database for transactional queries and trigger integrations. |
+| **Validations**    | Zod 4.4.3                    | Shared schemas for form input and Server Action validation.                   |
 
 ---
 
@@ -421,15 +429,15 @@ RBAC controls are verified via Next.js Middleware redirects and enforced inside 
 
 The dashboard contains the following active routes:
 
-* `/login` - Quick Switcher logins for all 4 roles + standard credentials form.
-* `/dashboard` - Fleet status metrics, active trips widget, and dynamic layout badges.
-* `/vehicles` - Table overview, registrations, type breakdowns, and "Add Vehicle" dialogs.
-* `/drivers` - Status tracking, license expirations, safety compliance scores.
-* `/trips` - Tabbed list of trips (Draft, Dispatched, Completed, Cancelled) and trip operations.
-* `/maintenance` - Opened and closed service ticket registers.
-* `/fuel-logs` - Fuel purchase entry sheets.
-* `/expenses` - Dynamic catalog lists mapping categorized operational overheads.
-* `/analytics` - Dynamic graphs mapping fuel efficiency, total operating overheads, and ROI sheets.
+- `/login` - Quick Switcher logins for all 4 roles + standard credentials form.
+- `/dashboard` - Fleet status metrics, active trips widget, and dynamic layout badges.
+- `/vehicles` - Table overview, registrations, type breakdowns, and "Add Vehicle" dialogs.
+- `/drivers` - Status tracking, license expirations, safety compliance scores.
+- `/trips` - Tabbed list of trips (Draft, Dispatched, Completed, Cancelled) and trip operations.
+- `/maintenance` - Opened and closed service ticket registers.
+- `/fuel-logs` - Fuel purchase entry sheets.
+- `/expenses` - Dynamic catalog lists mapping categorized operational overheads.
+- `/analytics` - Dynamic graphs mapping fuel efficiency, total operating overheads, and ROI sheets.
 
 <!-- screenshot: login -->
 <!-- screenshot: dashboard -->
@@ -446,26 +454,33 @@ The dashboard contains the following active routes:
 ## 🚀 Getting Started
 
 ### 1. Set Up Environment Variables
+
 Create a file named `.env.local` in the project root:
+
 ```env
 DATABASE_URL="postgresql://postgres:postgres@localhost:54322/postgres"
 ```
 
 ### 2. Prepare Database Schema
+
 Run the contents of [schema.sql](file:///d:/MyProject/ODOO/transitops/schema.sql) in your local PostgreSQL client or database editor. This drops old instances, constructs enums, defines tables, constructs indexes, and registers trigger callbacks.
 
 ### 3. Seed Demo Accounts & Data
+
 Execute the seed segment inside [schema.sql](file:///d:/MyProject/ODOO/transitops/schema.sql) to provision the demo personas:
+
 - **Fleet Manager:** `fleet@transitops.com` (password: `demo123456`)
 - **Driver:** `driver@transitops.com` (password: `demo123456`)
 - **Safety Officer:** `safety@transitops.com` (password: `demo123456`)
 - **Financial Analyst:** `finance@transitops.com` (password: `demo123456`)
 
 ### 4. Install Dependencies & Run
+
 ```bash
 npm install
 npm run dev
 ```
+
 Open [http://localhost:3000](http://localhost:3000) to view the application dashboard.
 
 ---
@@ -474,13 +489,13 @@ Open [http://localhost:3000](http://localhost:3000) to view the application dash
 
 Operational statistics are calculated inside [lib/actions/analytics.ts](file:///d:/MyProject/ODOO/transitops/lib/actions/analytics.ts):
 
-* **Fuel Efficiency (km/L):** Calculated as `Total Distance / Total Fuel Consumed`. Divisors of 0 degrade gracefully to `null` to avoid errors.
+- **Fuel Efficiency (km/L):** Calculated as `Total Distance / Total Fuel Consumed`. Divisors of 0 degrade gracefully to `null` to avoid errors.
   $$\text{Fuel Efficiency} = \frac{\sum \text{actual\_distance\_km}}{\sum \text{fuel\_consumed\_l}}$$
-* **Total Operational Cost:** Calculated per vehicle as the sum of maintenance records, fuel expenses, and miscellaneous logs.
+- **Total Operational Cost:** Calculated per vehicle as the sum of maintenance records, fuel expenses, and miscellaneous logs.
   $$\text{Total Operational Cost} = \sum \text{maintenance.cost} + \sum \text{fuel\_logs.cost} + \sum \text{expenses.amount}$$
-* **Vehicle ROI:** Calculated as `[Revenue - (Maintenance + Fuel)] / Acquisition Cost` (revenue defaults to 0 since trip revenue is not captured in this DB schema version).
+- **Vehicle ROI:** Calculated as `[Revenue - (Maintenance + Fuel)] / Acquisition Cost` (revenue defaults to 0 since trip revenue is not captured in this DB schema version).
   $$\text{Vehicle ROI} = \frac{0 - (\sum \text{maintenance.cost} + \sum \text{fuel\_logs.cost})}{\text{acquisition\_cost}}$$
-* **Fleet Utilization Rate (%):** Calculates active vehicles out of non-retired vehicles.
+- **Fleet Utilization Rate (%):** Calculates active vehicles out of non-retired vehicles.
   $$\text{Fleet Utilization Rate} = \left( \frac{\text{Vehicles with status 'on\_trip'}}{\text{Vehicles with status } \neq \text{ 'retired'}} \right) \times 100$$
 
 ---
@@ -489,27 +504,28 @@ Operational statistics are calculated inside [lib/actions/analytics.ts](file:///
 
 Follow these steps during testing or a live review:
 
-| Step | Action | Target Input | Expected Outcome | Status |
-| :--- | :--- | :--- | :--- | :---: |
-| **1** | Register a new vehicle | Reg: `"VAN-05"`, Capacity: `500` | Created successfully; status shows as `available` in list | Validated |
-| **2** | Register a new driver | License Expiry: `Future date` | Created successfully; status shows as `available` in list | Validated |
-| **3** | Create a draft trip | Cargo: `450 kg` | Trip created in `draft` state | Validated |
-| **4** | Cargo validation check | Try cargo: `600 kg` | Safe-check blocks submit with overweight warnings | Validated |
-| **5** | Dispatch the trip | Click "Dispatch" | Vehicle and driver status change to `on_trip` in real time | Validated |
-| **6** | Double-booking check | Try to dispatch another trip with same driver | Action rejects the request with resource unavailable error | Validated |
-| **7** | Complete the trip | Distance: `200`, Fuel: `40` | Trip status set to `completed`; vehicle odometer increments by 200 | Validated |
-| **8** | Grounding check | Open maintenance for "VAN-05" | Vehicle status changes to `in_shop`; VAN-05 is hidden from trip selectors | Validated |
-| **9** | Financial reporting check | Open reports dashboard | VAN-05 operational cost updates with maintenance and fuel expenses | Validated |
+| Step  | Action                    | Target Input                                  | Expected Outcome                                                          |  Status   |
+| :---- | :------------------------ | :-------------------------------------------- | :------------------------------------------------------------------------ | :-------: |
+| **1** | Register a new vehicle    | Reg: `"VAN-05"`, Capacity: `500`              | Created successfully; status shows as `available` in list                 | Validated |
+| **2** | Register a new driver     | License Expiry: `Future date`                 | Created successfully; status shows as `available` in list                 | Validated |
+| **3** | Create a draft trip       | Cargo: `450 kg`                               | Trip created in `draft` state                                             | Validated |
+| **4** | Cargo validation check    | Try cargo: `600 kg`                           | Safe-check blocks submit with overweight warnings                         | Validated |
+| **5** | Dispatch the trip         | Click "Dispatch"                              | Vehicle and driver status change to `on_trip` in real time                | Validated |
+| **6** | Double-booking check      | Try to dispatch another trip with same driver | Action rejects the request with resource unavailable error                | Validated |
+| **7** | Complete the trip         | Distance: `200`, Fuel: `40`                   | Trip status set to `completed`; vehicle odometer increments by 200        | Validated |
+| **8** | Grounding check           | Open maintenance for "VAN-05"                 | Vehicle status changes to `in_shop`; VAN-05 is hidden from trip selectors | Validated |
+| **9** | Financial reporting check | Open reports dashboard                        | VAN-05 operational cost updates with maintenance and fuel expenses        | Validated |
 
 ---
 
 ## 🚧 Known Gaps & Deferred Items
 
 The following features were excluded from the hackathon build by choice:
-* **Trip Billing Revenue:** The database schema does not feature a dynamic `revenue` column per trip, so ROI reports default to a base revenue of 0.
-* **Document Management:** File uploads for vehicle registrations and driver CDL files are excluded.
-* **Automated Expiry Notifications:** Email notifications for expiring driver licenses are excluded; license compliance check is performed during dispatch.
-* **Advanced Text Search:** Table dashboards feature query-filters matching status parameters and registration queries but do not support fuzzy search indices.
+
+- **Trip Billing Revenue:** The database schema does not feature a dynamic `revenue` column per trip, so ROI reports default to a base revenue of 0.
+- **Document Management:** File uploads for vehicle registrations and driver CDL files are excluded.
+- **Automated Expiry Notifications:** Email notifications for expiring driver licenses are excluded; license compliance check is performed during dispatch.
+- **Advanced Text Search:** Table dashboards feature query-filters matching status parameters and registration queries but do not support fuzzy search indices.
 
 ---
 
