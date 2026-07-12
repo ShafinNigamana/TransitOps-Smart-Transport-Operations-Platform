@@ -1,18 +1,24 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { pool } from "@/lib/db";
 import {
   createFuelLogSchema,
   createExpenseSchema,
 } from "@/lib/validations/fuel-expense.schema";
 import type { ActionResult, FuelLog, Expense } from "@/types/database";
 import { revalidatePath } from "next/cache";
+import { assertRole } from "@/lib/actions/auth";
 
 // ── Fuel Logs ───────────────────────────────────────────────────────────────
 
 export async function createFuelLog(
   input: unknown
 ): Promise<ActionResult<FuelLog>> {
+  const auth = await assertRole(["financial_analyst", "driver"]);
+  if (!auth.success) {
+    return { success: false, error: auth.error };
+  }
+
   const parsed = createFuelLogSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -24,49 +30,58 @@ export async function createFuelLog(
     };
   }
 
-  const supabase = await createClient();
+  try {
+    const insertRes = await pool.query(
+      `INSERT INTO public.fuel_logs 
+        (vehicle_id, trip_id, liters, cost, log_date)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [
+        parsed.data.vehicle_id,
+        parsed.data.trip_id || null,
+        parsed.data.liters,
+        parsed.data.cost,
+        parsed.data.log_date.toISOString().split("T")[0],
+      ]
+    );
 
-  const { data, error } = await supabase
-    .from("fuel_logs")
-    .insert({
-      vehicle_id: parsed.data.vehicle_id,
-      trip_id: parsed.data.trip_id || null,
-      liters: parsed.data.liters,
-      cost: parsed.data.cost,
-      log_date: parsed.data.log_date.toISOString().split("T")[0],
-    })
-    .select("*, vehicle:vehicles(*)")
-    .single();
+    const log = insertRes.rows[0];
 
-  if (error) {
+    const fetchRes = await pool.query(
+      `SELECT f.*, row_to_json(v) AS vehicle
+       FROM public.fuel_logs f
+       LEFT JOIN public.vehicles v ON f.vehicle_id = v.id
+       WHERE f.id = $1`,
+      [log.id]
+    );
+
+    revalidatePath("/fuel-logs");
+    revalidatePath("/analytics");
+    revalidatePath("/dashboard");
+    return { success: true, data: fetchRes.rows[0] as FuelLog };
+  } catch (error: any) {
     return {
       success: false,
-      error: { code: "INSERT_ERROR", message: error.message },
+      error: { code: "INSERT_ERROR", message: error.message || "Failed to create fuel log." },
     };
   }
-
-  revalidatePath("/fuel-logs");
-  revalidatePath("/analytics");
-  revalidatePath("/dashboard");
-  return { success: true, data: data as FuelLog };
 }
 
 export async function getFuelLogs(): Promise<ActionResult<FuelLog[]>> {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("fuel_logs")
-    .select("*, vehicle:vehicles(*)")
-    .order("log_date", { ascending: false });
-
-  if (error) {
+  try {
+    const dbRes = await pool.query(
+      `SELECT f.*, row_to_json(v) AS vehicle
+       FROM public.fuel_logs f
+       LEFT JOIN public.vehicles v ON f.vehicle_id = v.id
+       ORDER BY f.log_date DESC`
+    );
+    return { success: true, data: dbRes.rows as FuelLog[] };
+  } catch (error: any) {
     return {
       success: false,
-      error: { code: "QUERY_ERROR", message: "Failed to fetch fuel logs." },
+      error: { code: "QUERY_ERROR", message: error.message || "Failed to fetch fuel logs." },
     };
   }
-
-  return { success: true, data: (data ?? []) as FuelLog[] };
 }
 
 // ── Expenses ────────────────────────────────────────────────────────────────
@@ -74,6 +89,11 @@ export async function getFuelLogs(): Promise<ActionResult<FuelLog[]>> {
 export async function createExpense(
   input: unknown
 ): Promise<ActionResult<Expense>> {
+  const auth = await assertRole(["financial_analyst", "driver"]);
+  if (!auth.success) {
+    return { success: false, error: auth.error };
+  }
+
   const parsed = createExpenseSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -85,48 +105,57 @@ export async function createExpense(
     };
   }
 
-  const supabase = await createClient();
+  try {
+    const insertRes = await pool.query(
+      `INSERT INTO public.expenses 
+        (vehicle_id, trip_id, category, amount, expense_date, notes)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [
+        parsed.data.vehicle_id || null,
+        parsed.data.trip_id || null,
+        parsed.data.category,
+        parsed.data.amount,
+        parsed.data.expense_date.toISOString().split("T")[0],
+        parsed.data.notes ?? null,
+      ]
+    );
 
-  const { data, error } = await supabase
-    .from("expenses")
-    .insert({
-      vehicle_id: parsed.data.vehicle_id || null,
-      trip_id: parsed.data.trip_id || null,
-      category: parsed.data.category,
-      amount: parsed.data.amount,
-      expense_date: parsed.data.expense_date.toISOString().split("T")[0],
-      notes: parsed.data.notes ?? null,
-    })
-    .select("*, vehicle:vehicles(*)")
-    .single();
+    const expense = insertRes.rows[0];
 
-  if (error) {
+    const fetchRes = await pool.query(
+      `SELECT e.*, row_to_json(v) AS vehicle
+       FROM public.expenses e
+       LEFT JOIN public.vehicles v ON e.vehicle_id = v.id
+       WHERE e.id = $1`,
+      [expense.id]
+    );
+
+    revalidatePath("/expenses");
+    revalidatePath("/analytics");
+    revalidatePath("/dashboard");
+    return { success: true, data: fetchRes.rows[0] as Expense };
+  } catch (error: any) {
     return {
       success: false,
-      error: { code: "INSERT_ERROR", message: error.message },
+      error: { code: "INSERT_ERROR", message: error.message || "Failed to create expense." },
     };
   }
-
-  revalidatePath("/expenses");
-  revalidatePath("/analytics");
-  revalidatePath("/dashboard");
-  return { success: true, data: data as Expense };
 }
 
 export async function getExpenses(): Promise<ActionResult<Expense[]>> {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("expenses")
-    .select("*, vehicle:vehicles(*)")
-    .order("expense_date", { ascending: false });
-
-  if (error) {
+  try {
+    const dbRes = await pool.query(
+      `SELECT e.*, row_to_json(v) AS vehicle
+       FROM public.expenses e
+       LEFT JOIN public.vehicles v ON e.vehicle_id = v.id
+       ORDER BY e.expense_date DESC`
+    );
+    return { success: true, data: dbRes.rows as Expense[] };
+  } catch (error: any) {
     return {
       success: false,
-      error: { code: "QUERY_ERROR", message: "Failed to fetch expenses." },
+      error: { code: "QUERY_ERROR", message: error.message || "Failed to fetch expenses." },
     };
   }
-
-  return { success: true, data: (data ?? []) as Expense[] };
 }

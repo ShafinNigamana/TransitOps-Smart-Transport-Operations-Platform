@@ -50,11 +50,16 @@ export function TripForm({
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  const thirtyDaysLimit = new Date();
+  thirtyDaysLimit.setDate(today.getDate() + 30);
+  thirtyDaysLimit.setHours(0, 0, 0, 0);
+
   const availableVehicles = vehicles.filter((v) => v.status === "available");
   const availableDrivers = drivers.filter((d) => {
     if (d.status !== "available") return false;
     const expiry = new Date(d.license_expiry_date);
-    return expiry >= today;
+    expiry.setHours(0, 0, 0, 0);
+    return expiry >= thirtyDaysLimit;
   });
 
   const selectedVehicle = vehicles.find((v) => v.id === vehicleId);
@@ -84,10 +89,16 @@ export function TripForm({
       toast.error(errMsg);
     }
 
-    if (selectedDriver && new Date(selectedDriver.license_expiry_date) < today) {
-      const errMsg = `Driver license expired on ${selectedDriver.license_expiry_date}.`;
-      newErrors.driverId = errMsg;
-      toast.error(errMsg);
+    if (selectedDriver) {
+      const expiry = new Date(selectedDriver.license_expiry_date);
+      expiry.setHours(0, 0, 0, 0);
+      if (expiry < thirtyDaysLimit) {
+        const errMsg = expiry < today
+          ? `Driver license expired on ${selectedDriver.license_expiry_date}.`
+          : `Driver license expires within 30 days (on ${selectedDriver.license_expiry_date}).`;
+        newErrors.driverId = errMsg;
+        toast.error(errMsg);
+      }
     }
 
     if (Object.keys(newErrors).length > 0) {

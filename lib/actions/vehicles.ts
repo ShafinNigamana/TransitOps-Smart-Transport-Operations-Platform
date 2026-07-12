@@ -1,13 +1,19 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { pool } from "@/lib/db";
 import { createVehicleSchema, updateVehicleSchema } from "@/lib/validations/vehicle.schema";
 import type { ActionResult, Vehicle } from "@/types/database";
 import { revalidatePath } from "next/cache";
+import { assertRole } from "@/lib/actions/auth";
 
 export async function createVehicle(
   input: unknown
 ): Promise<ActionResult<Vehicle>> {
+  const auth = await assertRole(["fleet_manager"]);
+  if (!auth.success) {
+    return { success: false, error: auth.error };
+  }
+
   const parsed = createVehicleSchema.safeParse(input);
   if (!parsed.success) {
     const firstError = parsed.error.issues[0];
@@ -20,23 +26,28 @@ export async function createVehicle(
     };
   }
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("vehicles")
-    .insert({
-      registration_number: parsed.data.registrationNumber,
-      name: parsed.data.name,
-      vehicle_type: parsed.data.vehicleType,
-      max_load_capacity_kg: parsed.data.maxLoadCapacityKg,
-      odometer_km: parsed.data.odometerKm,
-      acquisition_cost: parsed.data.acquisitionCost,
-      region: parsed.data.region ?? null,
-    })
-    .select()
-    .single();
+  try {
+    const dbRes = await pool.query(
+      `INSERT INTO public.vehicles 
+        (registration_number, name, vehicle_type, max_load_capacity_kg, odometer_km, acquisition_cost, region)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING *`,
+      [
+        parsed.data.registrationNumber,
+        parsed.data.name,
+        parsed.data.vehicleType,
+        parsed.data.maxLoadCapacityKg,
+        parsed.data.odometerKm,
+        parsed.data.acquisitionCost,
+        parsed.data.region ?? null,
+      ]
+    );
 
-  if (error) {
-    console.error("Supabase error during createVehicle:", error);
+    revalidatePath("/vehicles");
+    revalidatePath("/dashboard");
+    return { success: true, data: dbRes.rows[0] as Vehicle };
+  } catch (error: any) {
+    console.error("error during createVehicle:", error);
     if (error.code === "23505") {
       return {
         success: false,
@@ -51,15 +62,16 @@ export async function createVehicle(
       error: { code: "UNKNOWN", message: error.message || "Failed to create vehicle." },
     };
   }
-
-  revalidatePath("/vehicles");
-  revalidatePath("/dashboard");
-  return { success: true, data: data as Vehicle };
 }
 
 export async function updateVehicle(
   input: unknown
 ): Promise<ActionResult<Vehicle>> {
+  const auth = await assertRole(["fleet_manager"]);
+  if (!auth.success) {
+    return { success: false, error: auth.error };
+  }
+
   const parsed = updateVehicleSchema.safeParse(input);
   if (!parsed.success) {
     const firstError = parsed.error.issues[0];
@@ -87,15 +99,31 @@ export async function updateVehicle(
     updatePayload.acquisition_cost = fields.acquisitionCost;
   if (fields.region !== undefined) updatePayload.region = fields.region;
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("vehicles")
-    .update(updatePayload)
-    .eq("id", id)
-    .select()
-    .single();
+  try {
+    const keys = Object.keys(updatePayload);
+    const params: any[] = [];
+    let pIdx = 1;
 
-  if (error) {
+    const setClause = keys.map(k => {
+      params.push(updatePayload[k]);
+      return `${k} = $${pIdx++}`;
+    }).join(", ");
+
+    params.push(id);
+    const sql = `UPDATE public.vehicles SET ${setClause} WHERE id = $${pIdx} RETURNING *`;
+    const dbRes = await pool.query(sql, params);
+
+    if (dbRes.rows.length === 0) {
+      return {
+        success: false,
+        error: { code: "NOT_FOUND", message: "Vehicle not found." },
+      };
+    }
+
+    revalidatePath("/vehicles");
+    revalidatePath("/dashboard");
+    return { success: true, data: dbRes.rows[0] as Vehicle };
+  } catch (error: any) {
     if (error.code === "23505") {
       return {
         success: false,
@@ -107,18 +135,19 @@ export async function updateVehicle(
     }
     return {
       success: false,
-      error: { code: "UNKNOWN", message: "Failed to update vehicle." },
+      error: { code: "UNKNOWN", message: error.message || "Failed to update vehicle." },
     };
   }
-
-  revalidatePath("/vehicles");
-  revalidatePath("/dashboard");
-  return { success: true, data: data as Vehicle };
 }
 
 export async function retireVehicle(
   vehicleId: string
 ): Promise<ActionResult<Vehicle>> {
+  const auth = await assertRole(["fleet_manager"]);
+  if (!auth.success) {
+    return { success: false, error: auth.error };
+  }
+
   if (!vehicleId) {
     return {
       success: false,
@@ -126,58 +155,49 @@ export async function retireVehicle(
     };
   }
 
-  const supabase = await createClient();
+  try {
+    const fetchRes = await pool.query("SELECT id, status FROM public.vehicles WHERE id = $1", [vehicleId]);
+    if (fetchRes.rows.length === 0) {
+      return {
+        success: false,
+        error: { code: "NOT_FOUND", message: "Vehicle not found." },
+      };
+    }
 
-  // Check current status — cannot retire a vehicle that is on_trip
-  const { data: vehicle, error: fetchError } = await supabase
-    .from("vehicles")
-    .select("id, status")
-    .eq("id", vehicleId)
-    .single();
+    const vehicle = fetchRes.rows[0];
 
-  if (fetchError || !vehicle) {
+    if (vehicle.status === "on_trip") {
+      return {
+        success: false,
+        error: {
+          code: "VEHICLE_ON_TRIP",
+          message: "Cannot retire a vehicle that is currently on a trip. Complete or cancel the trip first.",
+        },
+      };
+    }
+
+    if (vehicle.status === "retired") {
+      return {
+        success: false,
+        error: {
+          code: "ALREADY_RETIRED",
+          message: "This vehicle is already retired.",
+        },
+      };
+    }
+
+    const updateRes = await pool.query(
+      "UPDATE public.vehicles SET status = 'retired' WHERE id = $1 RETURNING *",
+      [vehicleId]
+    );
+
+    revalidatePath("/vehicles");
+    revalidatePath("/dashboard");
+    return { success: true, data: updateRes.rows[0] as Vehicle };
+  } catch (error: any) {
     return {
       success: false,
-      error: { code: "NOT_FOUND", message: "Vehicle not found." },
+      error: { code: "UNKNOWN", message: error.message || "Failed to retire vehicle." },
     };
   }
-
-  if (vehicle.status === "on_trip") {
-    return {
-      success: false,
-      error: {
-        code: "VEHICLE_ON_TRIP",
-        message:
-          "Cannot retire a vehicle that is currently on a trip. Complete or cancel the trip first.",
-      },
-    };
-  }
-
-  if (vehicle.status === "retired") {
-    return {
-      success: false,
-      error: {
-        code: "ALREADY_RETIRED",
-        message: "This vehicle is already retired.",
-      },
-    };
-  }
-
-  const { data, error } = await supabase
-    .from("vehicles")
-    .update({ status: "retired" })
-    .eq("id", vehicleId)
-    .select()
-    .single();
-
-  if (error) {
-    return {
-      success: false,
-      error: { code: "UNKNOWN", message: "Failed to retire vehicle." },
-    };
-  }
-
-  revalidatePath("/vehicles");
-  revalidatePath("/dashboard");
-  return { success: true, data: data as Vehicle };
 }

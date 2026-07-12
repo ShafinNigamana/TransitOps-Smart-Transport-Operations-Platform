@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { login, demoLogin } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -168,6 +169,12 @@ export default function LoginPage() {
             <span>{loading ? "Signing in…" : "Sign in"}</span>
           </Button>
         </form>
+        <p className="mt-4 text-center text-sm text-muted-foreground">
+          Don't have an account?{" "}
+          <Link href="/signup" className="text-primary hover:underline font-semibold">
+            Sign up
+          </Link>
+        </p>
       </div>
 
       {/* Demo Persona Quick-Login Card */}

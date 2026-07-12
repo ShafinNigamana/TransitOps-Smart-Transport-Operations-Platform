@@ -1,13 +1,19 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { pool } from "@/lib/db";
 import { createMaintenanceSchema } from "@/lib/validations/maintenance.schema";
 import type { ActionResult, Maintenance } from "@/types/database";
 import { revalidatePath } from "next/cache";
+import { assertRole } from "@/lib/actions/auth";
 
 export async function createMaintenanceRecord(
   input: unknown
 ): Promise<ActionResult<Maintenance>> {
+  const auth = await assertRole(["fleet_manager"]);
+  if (!auth.success) {
+    return { success: false, error: auth.error };
+  }
+
   const parsed = createMaintenanceSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -19,77 +25,81 @@ export async function createMaintenanceRecord(
     };
   }
 
-  const supabase = await createClient();
+  try {
+    const vehicleRes = await pool.query(
+      "SELECT status, name FROM public.vehicles WHERE id = $1",
+      [parsed.data.vehicle_id]
+    );
 
-  // Fetch linked vehicle details to verify rules
-  const { data: vehicle, error: vErr } = await supabase
-    .from("vehicles")
-    .select("status, name")
-    .eq("id", parsed.data.vehicle_id)
-    .single();
+    if (vehicleRes.rows.length === 0) {
+      return {
+        success: false,
+        error: { code: "NOT_FOUND", message: "Vehicle not found." },
+      };
+    }
 
-  if (vErr || !vehicle) {
+    const vehicle = vehicleRes.rows[0];
+
+    if (vehicle.status === "on_trip") {
+      return {
+        success: false,
+        error: {
+          code: "VEHICLE_ON_TRIP",
+          message: `Cannot send vehicle ${vehicle.name} to the shop: It is currently active on a trip.`,
+        },
+      };
+    }
+
+    await pool.query(
+      "UPDATE public.vehicles SET status = 'in_shop' WHERE id = $1",
+      [parsed.data.vehicle_id]
+    );
+
+    try {
+      const insertRes = await pool.query(
+        `INSERT INTO public.maintenance 
+          (vehicle_id, maintenance_type, description, cost, status, opened_at)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING *`,
+        [
+          parsed.data.vehicle_id,
+          parsed.data.maintenance_type,
+          parsed.data.description ?? null,
+          parsed.data.cost,
+          "open",
+          new Date().toISOString(),
+        ]
+      );
+
+      revalidatePath("/maintenance");
+      revalidatePath("/dashboard");
+      return { success: true, data: insertRes.rows[0] as Maintenance };
+    } catch (insertErr: any) {
+      await pool.query(
+        "UPDATE public.vehicles SET status = $1 WHERE id = $2",
+        [vehicle.status, parsed.data.vehicle_id]
+      );
+      return {
+        success: false,
+        error: { code: "INSERT_ERROR", message: insertErr.message || "Failed to insert record." },
+      };
+    }
+  } catch (error: any) {
     return {
       success: false,
-      error: { code: "NOT_FOUND", message: "Vehicle not found." },
+      error: { code: "UNKNOWN", message: error.message || "An error occurred." },
     };
   }
-
-  // Business Rule: Rejects vehicles currently on trip
-  if (vehicle.status === "on_trip") {
-    return {
-      success: false,
-      error: {
-        code: "VEHICLE_ON_TRIP",
-        message: `Cannot send vehicle ${vehicle.name} to the shop: It is currently active on a trip.`,
-      },
-    };
-  }
-
-  // Set vehicle status to 'in_shop'
-  const { error: vUpdateErr } = await supabase
-    .from("vehicles")
-    .update({ status: "in_shop" })
-    .eq("id", parsed.data.vehicle_id);
-
-  if (vUpdateErr) {
-    return {
-      success: false,
-      error: { code: "MUTATION_ERROR", message: "Failed to update vehicle status to shop." },
-    };
-  }
-
-  // Insert open maintenance record
-  const { data: record, error: insertErr } = await supabase
-    .from("maintenance")
-    .insert({
-      vehicle_id: parsed.data.vehicle_id,
-      maintenance_type: parsed.data.maintenance_type,
-      description: parsed.data.description ?? null,
-      cost: parsed.data.cost,
-      status: "open",
-      opened_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
-
-  if (insertErr) {
-    // Rollback vehicle status
-    await supabase.from("vehicles").update({ status: vehicle.status }).eq("id", parsed.data.vehicle_id);
-    return {
-      success: false,
-      error: { code: "INSERT_ERROR", message: insertErr.message },
-    };
-  }
-
-  revalidatePath("/maintenance");
-  revalidatePath("/dashboard");
-  return { success: true, data: record as Maintenance };
 }
 
 export async function closeMaintenanceRecord(
   recordId: string
 ): Promise<ActionResult<Maintenance>> {
+  const auth = await assertRole(["fleet_manager"]);
+  if (!auth.success) {
+    return { success: false, error: auth.error };
+  }
+
   if (!recordId) {
     return {
       success: false,
@@ -97,65 +107,55 @@ export async function closeMaintenanceRecord(
     };
   }
 
-  const supabase = await createClient();
+  try {
+    const recordRes = await pool.query(
+      "SELECT status, vehicle_id FROM public.maintenance WHERE id = $1",
+      [recordId]
+    );
 
-  // Fetch record to check status and vehicle
-  const { data: record, error: rErr } = await supabase
-    .from("maintenance")
-    .select("status, vehicle_id")
-    .eq("id", recordId)
-    .single();
+    if (recordRes.rows.length === 0) {
+      return {
+        success: false,
+        error: { code: "NOT_FOUND", message: "Maintenance record not found." },
+      };
+    }
 
-  if (rErr || !record) {
+    const record = recordRes.rows[0];
+
+    if (record.status !== "open") {
+      return {
+        success: false,
+        error: {
+          code: "INVALID_STATUS",
+          message: `Only open repair tickets can be closed. Current status: ${record.status}`,
+        },
+      };
+    }
+
+    const updateRes = await pool.query(
+      "UPDATE public.maintenance SET status = 'closed', closed_at = $1 WHERE id = $2 RETURNING *",
+      [new Date().toISOString(), recordId]
+    );
+
+    const vehicleRes = await pool.query(
+      "SELECT status FROM public.vehicles WHERE id = $1",
+      [record.vehicle_id]
+    );
+
+    if (vehicleRes.rows.length > 0 && vehicleRes.rows[0].status !== "retired") {
+      await pool.query(
+        "UPDATE public.vehicles SET status = 'available' WHERE id = $1",
+        [record.vehicle_id]
+      );
+    }
+
+    revalidatePath("/maintenance");
+    revalidatePath("/dashboard");
+    return { success: true, data: updateRes.rows[0] as Maintenance };
+  } catch (error: any) {
     return {
       success: false,
-      error: { code: "NOT_FOUND", message: "Maintenance record not found." },
+      error: { code: "UNKNOWN", message: error.message || "An error occurred." },
     };
   }
-
-  if (record.status !== "open") {
-    return {
-      success: false,
-      error: {
-        code: "INVALID_STATUS",
-        message: `Only open repair tickets can be closed. Current status: ${record.status}`,
-      },
-    };
-  }
-
-  // Update record status to 'closed'
-  const { data: updatedRecord, error: rUpdateErr } = await supabase
-    .from("maintenance")
-    .update({
-      status: "closed",
-      closed_at: new Date().toISOString(),
-    })
-    .eq("id", recordId)
-    .select()
-    .single();
-
-  if (rUpdateErr) {
-    return {
-      success: false,
-      error: { code: "MUTATION_ERROR", message: "Failed to close maintenance record." },
-    };
-  }
-
-  // Restore vehicle status to available if not retired
-  const { data: vehicle } = await supabase
-    .from("vehicles")
-    .select("status")
-    .eq("id", record.vehicle_id)
-    .single();
-
-  if (vehicle && vehicle.status !== "retired") {
-    await supabase
-      .from("vehicles")
-      .update({ status: "available" })
-      .eq("id", record.vehicle_id);
-  }
-
-  revalidatePath("/maintenance");
-  revalidatePath("/dashboard");
-  return { success: true, data: updatedRecord as Maintenance };
 }

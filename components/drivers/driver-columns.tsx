@@ -72,7 +72,8 @@ function LicenseExpiryBadge({ expiryDate }: { expiryDate: string }) {
   );
 }
 
-function SafetyScoreDisplay({ score }: { score: number }) {
+function SafetyScoreDisplay({ score: rawScore }: { score: number }) {
+  const score = Number(rawScore) || 0;
   let color = "text-emerald-600 dark:text-emerald-400";
   let bgColor = "bg-emerald-500";
   if (score < 70) {

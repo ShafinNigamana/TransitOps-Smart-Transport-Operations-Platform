@@ -1,13 +1,19 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { pool } from "@/lib/db";
 import { createDriverSchema, updateDriverSchema } from "@/lib/validations/driver.schema";
 import type { ActionResult, Driver } from "@/types/database";
 import { revalidatePath } from "next/cache";
+import { assertRole } from "@/lib/actions/auth";
 
 export async function createDriver(
   input: unknown
 ): Promise<ActionResult<Driver>> {
+  const auth = await assertRole(["fleet_manager", "safety_officer"]);
+  if (!auth.success) {
+    return { success: false, error: auth.error };
+  }
+
   const parsed = createDriverSchema.safeParse(input);
   if (!parsed.success) {
     const firstError = parsed.error.issues[0];
@@ -20,22 +26,27 @@ export async function createDriver(
     };
   }
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("drivers")
-    .insert({
-      full_name: parsed.data.fullName,
-      license_number: parsed.data.licenseNumber,
-      license_category: parsed.data.licenseCategory,
-      license_expiry_date: parsed.data.licenseExpiryDate,
-      contact_number: parsed.data.contactNumber,
-      safety_score: parsed.data.safetyScore,
-    })
-    .select()
-    .single();
+  try {
+    const dbRes = await pool.query(
+      `INSERT INTO public.drivers 
+        (full_name, license_number, license_category, license_expiry_date, contact_number, safety_score)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [
+        parsed.data.fullName,
+        parsed.data.licenseNumber,
+        parsed.data.licenseCategory,
+        parsed.data.licenseExpiryDate,
+        parsed.data.contactNumber,
+        parsed.data.safetyScore,
+      ]
+    );
 
-  if (error) {
-    console.error("Supabase error during createDriver:", error);
+    revalidatePath("/drivers");
+    revalidatePath("/dashboard");
+    return { success: true, data: dbRes.rows[0] as Driver };
+  } catch (error: any) {
+    console.error("error during createDriver:", error);
     if (error.code === "23505") {
       return {
         success: false,
@@ -50,15 +61,16 @@ export async function createDriver(
       error: { code: "UNKNOWN", message: error.message || "Failed to create driver." },
     };
   }
-
-  revalidatePath("/drivers");
-  revalidatePath("/dashboard");
-  return { success: true, data: data as Driver };
 }
 
 export async function updateDriver(
   input: unknown
 ): Promise<ActionResult<Driver>> {
+  const auth = await assertRole(["fleet_manager", "safety_officer"]);
+  if (!auth.success) {
+    return { success: false, error: auth.error };
+  }
+
   const parsed = updateDriverSchema.safeParse(input);
   if (!parsed.success) {
     const firstError = parsed.error.issues[0];
@@ -80,15 +92,31 @@ export async function updateDriver(
   if (fields.contactNumber !== undefined) updatePayload.contact_number = fields.contactNumber;
   if (fields.safetyScore !== undefined) updatePayload.safety_score = fields.safetyScore;
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("drivers")
-    .update(updatePayload)
-    .eq("id", id)
-    .select()
-    .single();
+  try {
+    const keys = Object.keys(updatePayload);
+    const params: any[] = [];
+    let pIdx = 1;
 
-  if (error) {
+    const setClause = keys.map(k => {
+      params.push(updatePayload[k]);
+      return `${k} = $${pIdx++}`;
+    }).join(", ");
+
+    params.push(id);
+    const sql = `UPDATE public.drivers SET ${setClause} WHERE id = $${pIdx} RETURNING *`;
+    const dbRes = await pool.query(sql, params);
+
+    if (dbRes.rows.length === 0) {
+      return {
+        success: false,
+        error: { code: "NOT_FOUND", message: "Driver not found." },
+      };
+    }
+
+    revalidatePath("/drivers");
+    revalidatePath("/dashboard");
+    return { success: true, data: dbRes.rows[0] as Driver };
+  } catch (error: any) {
     if (error.code === "23505") {
       return {
         success: false,
@@ -100,18 +128,19 @@ export async function updateDriver(
     }
     return {
       success: false,
-      error: { code: "UNKNOWN", message: "Failed to update driver." },
+      error: { code: "UNKNOWN", message: error.message || "Failed to update driver." },
     };
   }
-
-  revalidatePath("/drivers");
-  revalidatePath("/dashboard");
-  return { success: true, data: data as Driver };
 }
 
 export async function suspendDriver(
   driverId: string
 ): Promise<ActionResult<Driver>> {
+  const auth = await assertRole(["safety_officer"]);
+  if (!auth.success) {
+    return { success: false, error: auth.error };
+  }
+
   if (!driverId) {
     return {
       success: false,
@@ -119,57 +148,49 @@ export async function suspendDriver(
     };
   }
 
-  const supabase = await createClient();
+  try {
+    const fetchRes = await pool.query("SELECT id, status FROM public.drivers WHERE id = $1", [driverId]);
+    if (fetchRes.rows.length === 0) {
+      return {
+        success: false,
+        error: { code: "NOT_FOUND", message: "Driver not found." },
+      };
+    }
 
-  const { data: driver, error: fetchError } = await supabase
-    .from("drivers")
-    .select("id, status")
-    .eq("id", driverId)
-    .single();
+    const driver = fetchRes.rows[0];
 
-  if (fetchError || !driver) {
+    if (driver.status === "on_trip") {
+      return {
+        success: false,
+        error: {
+          code: "DRIVER_ON_TRIP",
+          message: "Cannot suspend a driver who is currently on a trip. Complete or cancel the trip first.",
+        },
+      };
+    }
+
+    if (driver.status === "suspended") {
+      return {
+        success: false,
+        error: {
+          code: "ALREADY_SUSPENDED",
+          message: "This driver is already suspended.",
+        },
+      };
+    }
+
+    const updateRes = await pool.query(
+      "UPDATE public.drivers SET status = 'suspended' WHERE id = $1 RETURNING *",
+      [driverId]
+    );
+
+    revalidatePath("/drivers");
+    revalidatePath("/dashboard");
+    return { success: true, data: updateRes.rows[0] as Driver };
+  } catch (error: any) {
     return {
       success: false,
-      error: { code: "NOT_FOUND", message: "Driver not found." },
+      error: { code: "UNKNOWN", message: error.message || "Failed to suspend driver." },
     };
   }
-
-  if (driver.status === "on_trip") {
-    return {
-      success: false,
-      error: {
-        code: "DRIVER_ON_TRIP",
-        message:
-          "Cannot suspend a driver who is currently on a trip. Complete or cancel the trip first.",
-      },
-    };
-  }
-
-  if (driver.status === "suspended") {
-    return {
-      success: false,
-      error: {
-        code: "ALREADY_SUSPENDED",
-        message: "This driver is already suspended.",
-      },
-    };
-  }
-
-  const { data, error } = await supabase
-    .from("drivers")
-    .update({ status: "suspended" })
-    .eq("id", driverId)
-    .select()
-    .single();
-
-  if (error) {
-    return {
-      success: false,
-      error: { code: "UNKNOWN", message: "Failed to suspend driver." },
-    };
-  }
-
-  revalidatePath("/drivers");
-  revalidatePath("/dashboard");
-  return { success: true, data: data as Driver };
 }
