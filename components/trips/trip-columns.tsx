@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { ArrowRight, MapPin, Truck, User } from "lucide-react";
 import {
   Table,
@@ -30,15 +31,11 @@ export function TripTable({
 }: TripTableProps) {
   if (trips.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-neutral-300 dark:border-neutral-800 p-12 text-center">
-        <Truck className="mx-auto h-10 w-10 text-neutral-400 dark:text-neutral-600 mb-3" />
-        <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
-          No trips found
-        </h3>
-        <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-          There are no trips matching the selected status tab.
-        </p>
-      </div>
+      <EmptyState
+        icon={Truck}
+        title="No trips found"
+        description="There are no trips matching the selected status tab."
+      />
     );
   }
 

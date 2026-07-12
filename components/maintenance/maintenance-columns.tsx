@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Wrench } from "lucide-react";
 import {
   Table,
@@ -26,15 +27,11 @@ export function MaintenanceTable({
 }: MaintenanceTableProps) {
   if (records.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-neutral-300 dark:border-neutral-800 p-12 text-center">
-        <Wrench className="mx-auto h-10 w-10 text-neutral-400 dark:text-neutral-600 mb-3" />
-        <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
-          No maintenance records found
-        </h3>
-        <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-          No repair or service records match the current view.
-        </p>
-      </div>
+      <EmptyState
+        icon={Wrench}
+        title="No maintenance records found"
+        description="No repair or service records match the current view."
+      />
     );
   }
 

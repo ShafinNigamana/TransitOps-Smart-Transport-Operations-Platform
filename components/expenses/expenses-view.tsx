@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ExpenseForm } from "@/components/expenses/expense-form";
+import { EmptyState } from "@/components/shared/empty-state";
 import type { Expense, Vehicle, CreateExpenseInput } from "@/types/database";
 import { createExpense } from "@/lib/actions/fuel-and-expenses";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -140,15 +141,16 @@ export function ExpensesView({
           <TableBody>
             {filteredExpenses.length === 0 ? (
               <TableRow>
-                <TableCell
-                  colSpan={5}
-                  className="text-center py-12 text-muted-foreground"
-                >
-                  <DollarSign className="h-8 w-8 mx-auto mb-3 opacity-30" />
-                  <p className="font-semibold">No expenses recorded</p>
-                  <p className="text-xs mt-1">
-                    Click &quot;Log Expense&quot; to add an operational cost.
-                  </p>
+                <TableCell colSpan={5} className="py-12">
+                  <EmptyState
+                    icon={DollarSign}
+                    title="No expenses recorded"
+                    description={
+                      searchQuery.trim()
+                        ? "Try adjusting your search query."
+                        : "Click 'Log Expense' to add an operational cost."
+                    }
+                  />
                 </TableCell>
               </TableRow>
             ) : (

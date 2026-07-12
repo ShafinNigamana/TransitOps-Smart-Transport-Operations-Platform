@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -272,16 +273,18 @@ export function VehicleTable({ initialVehicles }: VehicleTableProps) {
           <TableBody>
             {paginatedVehicles.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={vehicleColumns.length + 1} className="h-32 text-center">
-                  <div className="flex flex-col items-center gap-2 text-neutral-400 dark:text-neutral-500">
-                    <Truck className="h-8 w-8 opacity-50" />
-                    <p className="text-sm font-medium">No vehicles found</p>
-                    <p className="text-xs">
-                      {search || statusFilter !== "all" || regionFilter !== "All Regions"
+                <TableCell colSpan={vehicleColumns.length + 1} className="h-48">
+                  <EmptyState
+                    icon={Truck}
+                    title="No vehicles found"
+                    description={
+                      search || statusFilter !== "all" || regionFilter !== "All Regions"
                         ? "Try adjusting your search or filters."
-                        : "Register your first vehicle to get started."}
-                    </p>
-                  </div>
+                        : "Register your first vehicle to get started."
+                    }
+                    ctaLabel={!(search || statusFilter !== "all" || regionFilter !== "All Regions") ? "Register Vehicle" : undefined}
+                    onCtaClick={!(search || statusFilter !== "all" || regionFilter !== "All Regions") ? () => setFormOpen(true) : undefined}
+                  />
                 </TableCell>
               </TableRow>
             ) : (

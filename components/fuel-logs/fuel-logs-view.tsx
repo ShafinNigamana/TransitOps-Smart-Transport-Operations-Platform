@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Plus, Search, Fuel, Loader2 } from "lucide-react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -136,15 +137,16 @@ export function FuelLogsView({
           <TableBody>
             {filteredLogs.length === 0 ? (
               <TableRow>
-                <TableCell
-                  colSpan={5}
-                  className="text-center py-12 text-muted-foreground"
-                >
-                  <Fuel className="h-8 w-8 mx-auto mb-3 opacity-30" />
-                  <p className="font-semibold">No fuel logs found</p>
-                  <p className="text-xs mt-1">
-                    Click &quot;Log Fuel&quot; to record a fuel purchase.
-                  </p>
+                <TableCell colSpan={5} className="py-12">
+                  <EmptyState
+                    icon={Fuel}
+                    title="No fuel logs found"
+                    description={
+                      searchQuery.trim()
+                        ? "Try adjusting your search query."
+                        : "Click 'Log Fuel' to record a fuel purchase."
+                    }
+                  />
                 </TableCell>
               </TableRow>
             ) : (
