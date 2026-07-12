@@ -16,7 +16,7 @@ export default function AuthLayout({
     setMounted(true);
   }, []);
 
-  const logoSrc = mounted && resolvedTheme === "dark" ? "/logo-dark.png" : "/logo-light.png";
+  const logoSrc = mounted && resolvedTheme === "dark" ? "/logo-dark-v2.png" : "/logo-light-v2.png";
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12">

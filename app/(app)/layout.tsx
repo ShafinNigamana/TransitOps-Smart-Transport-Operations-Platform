@@ -56,7 +56,7 @@ export default function AppLayout({
     setMounted(true);
   }, []);
 
-  const logoSrc = mounted && resolvedTheme === "dark" ? "/logo-dark.png" : "/logo-light.png";
+  const logoSrc = mounted && resolvedTheme === "dark" ? "/logo-dark-v2.png" : "/logo-light-v2.png";
 
   // Load user profile on mount
   React.useEffect(() => {
