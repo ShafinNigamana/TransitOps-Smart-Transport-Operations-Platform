@@ -1,5 +1,25 @@
+"use client";
+
 import Link from "next/link";
-import { Zap } from "lucide-react";
+import { Database, Terminal } from "lucide-react";
+
+interface FooterLink {
+  label: string;
+  href: string;
+}
+
+const navigationLinks: FooterLink[] = [
+  { label: "Capabilities", href: "#features" },
+  { label: "Personas Matrix", href: "#personas" },
+  { label: "Architecture", href: "#architecture" },
+  { label: "Metrics Dashboard", href: "#metrics" },
+];
+
+const resourceLinks: FooterLink[] = [
+  { label: "App Login", href: "/login" },
+  { label: "Database Schema", href: "#architecture" },
+  { label: "GitHub Codebase", href: "https://github.com/ShafinNigamana/TransitOps-Smart-Transport-Operations-Platform" },
+];
 
 function GithubIcon({ className }: { className?: string }) {
   return (
@@ -14,67 +34,69 @@ function GithubIcon({ className }: { className?: string }) {
   );
 }
 
-const quickLinks = [
-  { label: "Features", href: "#features" },
-  { label: "Personas", href: "#personas" },
-  { label: "Architecture", href: "#architecture" },
-  { label: "Metrics", href: "#metrics" },
-];
-
-const productLinks = [
-  { label: "Fleet Management", href: "/login" },
-  { label: "Vehicle Tracking", href: "/login" },
-  { label: "Trip Dispatching", href: "/login" },
-  { label: "Analytics Dashboard", href: "/login" },
-];
-
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
+  const handleSmoothScroll = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    href: string
+  ) => {
+    if (href.startsWith("#")) {
+      e.preventDefault();
+      const el = document.querySelector(href);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+  };
+
   return (
-    <footer className="relative border-t border-slate-800/60 bg-slate-950/80">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8">
-          {/* Brand Column */}
-          <div className="sm:col-span-2 lg:col-span-1">
-            <Link href="/" className="flex items-center gap-2 mb-4 group">
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/20">
-                <Zap className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-lg font-bold tracking-tight">
-                <span className="text-white">Transit</span>
-                <span className="bg-gradient-to-r from-blue-400 to-blue-500 bg-clip-text text-transparent">
-                  Ops
-                </span>
-              </span>
+    <footer className="relative bg-card border-t border-border/30 z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-8 items-start mb-12">
+          
+          {/* Logo & Info column */}
+          <div className="md:col-span-6 flex flex-col items-start gap-4">
+            <Link href="/" className="flex items-center">
+              <img
+                src="/logo-dark-v2.png"
+                alt="TransitOps"
+                className="h-8 w-auto object-contain hidden dark:block"
+              />
+              <img
+                src="/logo-light-v2.png"
+                alt="TransitOps"
+                className="h-8 w-auto object-contain block dark:hidden"
+              />
             </Link>
-            <p className="text-sm text-slate-500 leading-relaxed max-w-xs mb-5">
-              Local-first fleet management system built with Next.js 15,
-              TypeScript, and PostgreSQL 18. Designed for logistics operations
-              teams.
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-sm leading-relaxed">
+              Operational Fleet Intelligence for modern logistics teams. Enforce pre-dispatch cargo weights, driver license verification alerts, and maintenance grounding flows—all running on a zero-latency local-first platform.
             </p>
-            <a
-              href="https://github.com/ShafinNigamana/TransitOps-Smart-Transport-Operations-Platform"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium text-slate-400 hover:text-white border border-slate-800/60 hover:border-slate-700 rounded-lg transition-all"
-            >
-              <GithubIcon className="w-4 h-4" />
-              View on GitHub
-            </a>
+            <div className="flex items-center gap-3 mt-2">
+              <a
+                href="https://github.com/ShafinNigamana/TransitOps-Smart-Transport-Operations-Platform"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/80 hover:bg-muted text-xs font-bold text-foreground transition-all"
+              >
+                <GithubIcon className="w-3.5 h-3.5" />
+                View Repository
+              </a>
+            </div>
           </div>
 
-          {/* Quick Links */}
-          <div>
-            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
+          {/* Quick Links Column */}
+          <div className="md:col-span-3">
+            <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-foreground mb-4">
               Navigation
             </h4>
-            <ul className="space-y-2.5">
-              {quickLinks.map((link) => (
+            <ul className="space-y-2">
+              {navigationLinks.map((link) => (
                 <li key={link.label}>
                   <a
                     href={link.href}
-                    className="text-sm text-slate-500 hover:text-white transition-colors"
+                    onClick={(e) => handleSmoothScroll(e, link.href)}
+                    className="text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {link.label}
                   </a>
@@ -83,56 +105,51 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Product Links */}
-          <div>
-            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
-              Product
+          {/* Resources Column */}
+          <div className="md:col-span-3">
+            <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-foreground mb-4">
+              Resources
             </h4>
-            <ul className="space-y-2.5">
-              {productLinks.map((link) => (
+            <ul className="space-y-2">
+              {resourceLinks.map((link) => (
                 <li key={link.label}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-slate-500 hover:text-white transition-colors"
-                  >
-                    {link.label}
-                  </Link>
+                  {link.href.startsWith("http") ? (
+                    <a
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {link.label}
+                    </a>
+                  ) : (
+                    <Link
+                      href={link.href}
+                      className="text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {link.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Tech Stack */}
-          <div>
-            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
-              Built With
-            </h4>
-            <ul className="space-y-2.5 text-sm text-slate-500">
-              <li>Next.js 15 App Router</li>
-              <li>TypeScript + Zod</li>
-              <li>Tailwind CSS v4</li>
-              <li>PostgreSQL 18</li>
-              <li>Framer Motion</li>
-            </ul>
+        </div>
+
+        {/* Footer Base bar */}
+        <div className="pt-8 border-t border-border/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-muted-foreground">
+            &copy; {currentYear} TransitOps. Smart Transport Operations Platform.
+          </p>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5 text-xs text-accent font-mono font-bold bg-accent/10 px-2.5 py-0.5 rounded border border-accent/20">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+              Local Engine Online
+            </div>
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="mt-12 pt-8 border-t border-slate-800/40 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-slate-600">
-            &copy; {currentYear} TransitOps. Smart Transport Operations
-            Platform. All rights reserved.
-          </p>
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5 text-xs text-slate-600">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
-              </span>
-              System Operational
-            </span>
-          </div>
-        </div>
       </div>
     </footer>
   );

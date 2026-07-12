@@ -2,10 +2,10 @@
 
 import { motion } from "framer-motion";
 import {
-  ShieldCheck,
-  Gauge,
+  ShieldAlert,
+  Scale,
   Wrench,
-  Fuel,
+  IndianRupee,
   BarChart3,
   Users,
 } from "lucide-react";
@@ -14,100 +14,105 @@ interface FeatureCardProps {
   icon: React.ReactNode;
   title: string;
   description: string;
-  gradient: string;
-  iconBg: string;
+  badge: string;
+  iconColor: string;
   delay: number;
 }
 
 const features: FeatureCardProps[] = [
   {
-    icon: <Gauge className="w-6 h-6" />,
+    icon: <Scale className="w-5 h-5" />,
     title: "Cargo Capacity Guard",
     description:
-      "Smart pre-dispatch check that prevents overloading by matching cargo weight against vehicle max_capacity_kg. Never exceed safe payload limits again.",
-    gradient: "from-blue-500/10 to-blue-600/5",
-    iconBg: "bg-blue-500/15 text-blue-400",
-    delay: 0,
+      "Automated pre-dispatch verification checking load weights directly against vehicle.max_capacity_kg, preventing overweight dispatch runs before they leave the yard.",
+    badge: "Constraint Enforced",
+    iconColor: "text-accent bg-accent/10 border-accent/20",
+    delay: 0.05,
   },
   {
-    icon: <ShieldCheck className="w-6 h-6" />,
-    title: "Driver Compliance & Expiry Alert",
+    icon: <ShieldAlert className="w-5 h-5" />,
+    title: "30-Day License Compliance",
     description:
-      "Automatic validation of driver license categories and expiry dates with 30-day warning indicators. Ensure full driver safety compliance before dispatch.",
-    gradient: "from-emerald-500/10 to-emerald-600/5",
-    iconBg: "bg-emerald-500/15 text-emerald-400",
+      "Automatic driver compliance filtering. Triggers visual warning indicators and prevents trip assignment for any driver with less than 30 days of license validity.",
+    badge: "Safety Rule",
+    iconColor: "text-fleet-ochre bg-fleet-ochre/10 border-fleet-ochre/20",
     delay: 0.1,
   },
   {
-    icon: <Wrench className="w-6 h-6" />,
-    title: "Automated Maintenance Grounding",
+    icon: <Wrench className="w-5 h-5" />,
+    title: "Automated Grounding Flow",
     description:
-      "Instant vehicle status transition to in_shop upon repair logging, automatically hiding unavailable units from dispatch queues.",
-    gradient: "from-amber-500/10 to-amber-600/5",
-    iconBg: "bg-amber-500/15 text-amber-400",
+      "When a maintenance ticket is opened, the vehicle status automatically transitions to in_shop. Instantly grounds the vehicle and hides it from the dispatch queue.",
+    badge: "Status Workflow",
+    iconColor: "text-fleet-red bg-fleet-red/10 border-fleet-red/20",
+    delay: 0.15,
+  },
+  {
+    icon: <IndianRupee className="w-5 h-5" />,
+    title: "Rupee Currency & Expense",
+    description:
+      "Track and audit all expenses in ₹ INR. Links fuel logs, maintenance tickets, and tolls directly to trips to calculate exact run costs.",
+    badge: "Financial Engine",
+    iconColor: "text-primary bg-primary/10 border-primary/20",
     delay: 0.2,
   },
   {
-    icon: <Fuel className="w-6 h-6" />,
-    title: "Fuel & Cost Tracking",
+    icon: <BarChart3 className="w-5 h-5" />,
+    title: "Operational Cost Analytics",
     description:
-      "Comprehensive expense logging, fuel consumption tracking, and detailed cost breakdowns per trip. Monitor cost-per-kilometer metrics in real time.",
-    gradient: "from-orange-500/10 to-orange-600/5",
-    iconBg: "bg-orange-500/15 text-orange-400",
+      "Calculates fuel efficiency (km/L) and Cost-per-Kilometer metrics in real time. Generates clean, vector-based PDF and CSV reports for operations reviews.",
+    badge: "Data Exports",
+    iconColor: "text-fleet-sage bg-fleet-sage/10 border-fleet-sage/20",
+    delay: 0.25,
+  },
+  {
+    icon: <Users className="w-5 h-5" />,
+    title: "Isolated RBAC Workflows",
+    description:
+      "Strict role-based access control. Dynamically generates interfaces and restricts data visibility for Managers, Drivers, Safety Officers, and Financial Analysts.",
+    badge: "Access Security",
+    iconColor: "text-accent bg-accent/10 border-accent/20",
     delay: 0.3,
-  },
-  {
-    icon: <BarChart3 className="w-6 h-6" />,
-    title: "Operational Analytics",
-    description:
-      "Real-time metrics for fuel efficiency (km/L), Cost-per-KM, and vehicle utilization rates. Export operational data to CSV for external analysis.",
-    gradient: "from-purple-500/10 to-purple-600/5",
-    iconBg: "bg-purple-500/15 text-purple-400",
-    delay: 0.4,
-  },
-  {
-    icon: <Users className="w-6 h-6" />,
-    title: "Role-Based Workflows",
-    description:
-      "Contextual navigation and permissions tailored to Fleet Managers, Drivers, Safety Officers, and Financial Analysts with full RBAC enforcement.",
-    gradient: "from-cyan-500/10 to-cyan-600/5",
-    iconBg: "bg-cyan-500/15 text-cyan-400",
-    delay: 0.5,
   },
 ];
 
-function FeatureCard({
-  icon,
-  title,
-  description,
-  gradient,
-  iconBg,
-  delay,
-}: FeatureCardProps) {
+function FeatureCard({ icon, title, description, badge, iconColor, delay }: FeatureCardProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-60px" }}
-      transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ type: "spring", stiffness: 300, damping: 30, delay }}
       className="group relative"
     >
-      <div
-        className={`relative h-full p-6 rounded-2xl bg-gradient-to-br ${gradient} border border-slate-800/60 hover:border-slate-700/80 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/20`}
-      >
-        {/* Icon */}
-        <div
-          className={`flex items-center justify-center w-12 h-12 rounded-xl ${iconBg} mb-5 transition-transform group-hover:scale-110`}
-        >
-          {icon}
+      <div className="h-full p-6 rounded-xl bg-card border border-border/50 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 shadow-[0_2px_8px_rgba(0,0,0,0.015)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.12)] transition-all duration-300 flex flex-col justify-between">
+        <div>
+          {/* Header & Icon */}
+          <div className="flex items-center justify-between mb-4">
+            <div className={`flex items-center justify-center w-10 h-10 rounded-lg shrink-0 ${iconColor} border`}>
+              {icon}
+            </div>
+            <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-muted-foreground bg-muted/40 px-2 py-0.5 rounded border border-border/30">
+              {badge}
+            </span>
+          </div>
+
+          {/* Title & Desc */}
+          <h3 className="text-base font-bold text-foreground mb-2 tracking-tight group-hover:text-primary transition-colors font-sans">
+            {title}
+          </h3>
+          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed font-sans">
+            {description}
+          </p>
         </div>
 
-        {/* Content */}
-        <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
-        <p className="text-sm text-slate-400 leading-relaxed">{description}</p>
-
-        {/* Hover glow */}
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+        {/* Micro-Interaction Line */}
+        <div className="mt-4 pt-4 border-t border-border/20 flex items-center justify-end">
+          <span className="text-[11px] font-mono font-bold text-muted-foreground group-hover:text-primary transition-colors flex items-center gap-1">
+            System Constraint
+            <span className="translate-x-0 group-hover:translate-x-0.5 transition-transform">→</span>
+          </span>
+        </div>
       </div>
     </motion.div>
   );
@@ -115,40 +120,29 @@ function FeatureCard({
 
 export default function Features() {
   return (
-    <section id="features" className="relative py-24 sm:py-32">
-      {/* Subtle background divider */}
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900/30 to-slate-950" />
-
+    <section id="features" className="relative py-24 sm:py-32 bg-background border-t border-border/30">
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
         {/* Section Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-16"
-        >
-          <span className="inline-block px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold tracking-wide uppercase mb-4">
+        <div className="text-left mb-16 max-w-2xl">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-xs font-mono font-bold uppercase tracking-wider mb-4">
             Core Capabilities
           </span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-4">
-            Fleet Management System —{" "}
-            <span className="bg-gradient-to-r from-blue-400 to-orange-400 bg-clip-text text-transparent">
-              Built for Operations
-            </span>
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground font-display mb-4">
+            Built for High-Precision Operations.
           </h2>
-          <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-            Every business rule, safety constraint, and logistics workflow baked
-            into a single, zero-cloud-dependency platform.
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed font-sans">
+            Every business rule, cargo validation constraint, and role-based workflow is enforced natively by our local intelligence architecture.
           </p>
-        </motion.div>
+        </div>
 
-        {/* Feature Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        {/* Bento Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature) => (
             <FeatureCard key={feature.title} {...feature} />
           ))}
         </div>
+
       </div>
     </section>
   );

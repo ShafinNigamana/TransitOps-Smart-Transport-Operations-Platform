@@ -5,244 +5,303 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Truck,
-  Route,
+  User,
   ShieldCheck,
-  DollarSign,
-  ArrowRight,
+  BarChart3,
+  IndianRupee,
   CheckCircle2,
+  AlertTriangle,
+  Download,
+  ArrowRight,
+  EyeOff,
 } from "lucide-react";
+import { toast } from "sonner";
 
-interface Persona {
+interface PersonaData {
   id: string;
   role: string;
-  label: string;
-  color: string;
-  accentBg: string;
-  borderColor: string;
+  badge: string;
   dotColor: string;
   icon: React.ReactNode;
   headline: string;
   description: string;
-  capabilities: string[];
+  systemMetrics: { label: string; value: string; isSecret?: boolean }[];
+  accentColor: string;
 }
 
-const personas: Persona[] = [
+const personasData: PersonaData[] = [
   {
     id: "fleet_manager",
     role: "Fleet Manager",
-    label: "🟠",
-    color: "text-orange-400",
-    accentBg: "bg-orange-500/10",
-    borderColor: "border-orange-500/30 hover:border-orange-500/50",
-    dotColor: "bg-orange-500",
-    icon: <Truck className="w-6 h-6 text-orange-400" />,
-    headline: "Command Center for Fleet Operations",
+    badge: "🟠 Ops Center",
+    dotColor: "bg-primary",
+    icon: <Truck className="w-5 h-5" />,
+    headline: "Dispatch Control & Allocation",
     description:
-      "Full dispatch center access with vehicle allocation, fleet health monitoring, and real-time trip dispatching across your entire logistics network.",
-    capabilities: [
-      "Vehicle dispatch & trip assignment",
-      "Fleet health monitoring dashboard",
-      "Cargo capacity pre-dispatch validation",
-      "Operational cost overview & ROI tracking",
+      "Review active dispatch requests, track max cargo weight validations, allocate assets, and manage trip dispatching across the system.",
+    accentColor: "border-primary/30 text-primary bg-primary/10",
+    systemMetrics: [
+      { label: "Fleet Health", value: "98% Online" },
+      { label: "Active Trips", value: "24 Trips" },
+      { label: "Grounded Units", value: "12 in_shop" },
+      { label: "Capacity Limit", value: "Max 12.5t" },
     ],
   },
   {
     id: "driver",
     role: "Driver",
-    label: "🟢",
-    color: "text-emerald-400",
-    accentBg: "bg-emerald-500/10",
-    borderColor: "border-emerald-500/30 hover:border-emerald-500/50",
-    dotColor: "bg-emerald-500",
-    icon: <Route className="w-6 h-6 text-emerald-400" />,
-    headline: "Your Active Trip Dashboard",
+    badge: "🟢 Trip Log",
+    dotColor: "bg-accent",
+    icon: <User className="w-5 h-5" />,
+    headline: "Personal Logs & Odometer Entries",
     description:
-      "View assigned trips, log odometer readings, update active route status, and track fuel consumption from a streamlined driver interface.",
-    capabilities: [
-      "Assigned trip queue & route details",
-      "Odometer reading logger",
-      "Active route status updates",
-      "Fuel log submission",
+      "A distraction-free UI to check assigned trips, update active route status, log odometer changes, and record fuel receipts.",
+    accentColor: "border-accent/30 text-accent bg-accent/10",
+    systemMetrics: [
+      { label: "Driver ID", value: "DRV-908" },
+      { label: "Assigned Route", value: "Delhi-NCR Hub" },
+      { label: "Odometer Today", value: "48,290 km" },
+      { label: "Next Shift", value: "Tomorrow 08:00" },
     ],
   },
   {
     id: "safety_officer",
     role: "Safety Officer",
-    label: "🟡",
-    color: "text-yellow-400",
-    accentBg: "bg-yellow-500/10",
-    borderColor: "border-yellow-500/30 hover:border-yellow-500/50",
-    dotColor: "bg-yellow-500",
-    icon: <ShieldCheck className="w-6 h-6 text-yellow-400" />,
-    headline: "Compliance & Safety Intelligence",
+    badge: "🟡 Compliance Guard",
+    dotColor: "bg-fleet-ochre",
+    icon: <ShieldCheck className="w-5 h-5" />,
+    headline: "Safety Ratings & Expiry Alerts",
     description:
-      "Monitor driver license verification status, track safety ratings, manage compliance checks, and enforce license expiry alert workflows.",
-    capabilities: [
-      "Driver license category verification",
-      "30-day expiry warning system",
-      "Safety rating tracking & audits",
-      "Vehicle grounding workflow enforcement",
+      "Monitor driver license validity warning triggers, safety compliance violations, and enforce immediate maintenance grounding rules.",
+    accentColor: "border-fleet-ochre/30 text-fleet-ochre bg-fleet-ochre/10",
+    systemMetrics: [
+      { label: "License Alerts", value: "1 Pending (<30d)" },
+      { label: "Grounded (in_shop)", value: "12 Vehicles" },
+      { label: "Safety Score", value: "96.4%" },
+      { label: "Fuel Expenses", value: "₹0.00", isSecret: true }, // Zeroed/hidden financials
     ],
   },
   {
     id: "financial_analyst",
     role: "Financial Analyst",
-    label: "⚪",
-    color: "text-slate-300",
-    accentBg: "bg-slate-500/10",
-    borderColor: "border-slate-500/30 hover:border-slate-400/50",
-    dotColor: "bg-slate-400",
-    icon: <DollarSign className="w-6 h-6 text-slate-300" />,
-    headline: "Financial & Operational Analytics",
+    badge: "⚪ ROI Analytics",
+    dotColor: "bg-fleet-sage",
+    icon: <BarChart3 className="w-5 h-5" />,
+    headline: "Operational Margins & Expenses",
     description:
-      "Access operational cost breakdowns, fuel expense analysis, cost-per-kilometer metrics, and export comprehensive CSV reports for stakeholders.",
-    capabilities: [
-      "Cost-per-kilometer analysis",
-      "Fuel efficiency reports (km/L)",
-      "Expense breakdown by category",
-      "CSV export for external reporting",
+      "Audit Cost-per-Kilometer logs, track total fuel expenses in ₹ INR, and download compliance audits in CSV/PDF files.",
+    accentColor: "border-fleet-sage/30 text-fleet-sage bg-fleet-sage/10",
+    systemMetrics: [
+      { label: "Total Fuel Spend", value: "₹3,42,500" },
+      { label: "Avg Cost / KM", value: "₹8.72" },
+      { label: "Trip Margins", value: "24.2%" },
+      { label: "Pending Claims", value: "3 Tickets" },
     ],
   },
 ];
 
 export default function Personas() {
-  const [activeId, setActiveId] = useState<string>("fleet_manager");
-  const active = personas.find((p) => p.id === activeId) ?? personas[0];
+  const [selectedId, setSelectedId] = useState("fleet_manager");
+  const [odometerInput, setOdometerInput] = useState("48290");
+
+  const currentPersona = personasData.find((p) => p.id === selectedId) || personasData[0];
+
+  const handleSimulateAction = (action: string) => {
+    toast.success(`Success: Mocking action "${action}" for ${currentPersona.role}`);
+  };
 
   return (
-    <section id="personas" className="relative py-24 sm:py-32">
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900/20 to-slate-950" />
-
+    <section id="personas" className="relative py-24 sm:py-32 bg-background border-t border-border/30">
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
         {/* Section Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-16"
-        >
-          <span className="inline-block px-4 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-semibold tracking-wide uppercase mb-4">
-            Role-Based Access Control
+        <div className="text-center mb-16 max-w-2xl mx-auto">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-mono font-bold uppercase tracking-wider mb-4">
+            Role-Based Access
           </span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-4">
-            Four Personas,{" "}
-            <span className="bg-gradient-to-r from-orange-400 to-blue-400 bg-clip-text text-transparent">
-              One Unified Platform
-            </span>
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground font-display mb-4">
+            Four Personas. One Database.
           </h2>
-          <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-            Each role gets a contextual, purpose-built interface optimized for
-            their daily workflow. Quick-login to explore any persona.
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed font-sans">
+            TransitOps dynamically updates navigation, forms, alerts, and metrics based on active user roles to ensure tight compliance.
           </p>
-        </motion.div>
-
-        {/* Persona Selector Tabs */}
-        <div className="flex flex-wrap justify-center gap-3 mb-12">
-          {personas.map((p) => (
-            <button
-              key={p.id}
-              id={`persona-tab-${p.id}`}
-              onClick={() => setActiveId(p.id)}
-              className={`flex items-center gap-2.5 px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-300 border ${
-                activeId === p.id
-                  ? `${p.accentBg} ${p.borderColor.split(" ")[0]} ${p.color} shadow-lg`
-                  : "bg-slate-900/50 border-slate-800/60 text-slate-400 hover:text-white hover:border-slate-700"
-              }`}
-            >
-              <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-slate-800/80">
-                {p.icon}
-              </span>
-              {p.role}
-            </button>
-          ))}
         </div>
 
-        {/* Active Persona Detail Card */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={active.id}
-            initial={{ opacity: 0, y: 20, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.98 }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="max-w-4xl mx-auto"
-          >
-            <div
-              className={`relative p-8 sm:p-10 rounded-2xl bg-slate-900/60 backdrop-blur-xl border ${active.borderColor.split(" ")[0]} shadow-2xl`}
-            >
-              {/* Glow accent */}
-              <div
-                className={`absolute -top-px left-1/4 right-1/4 h-px ${active.accentBg.replace("/10", "/30")}`}
-                style={{
-                  background: `linear-gradient(90deg, transparent, ${active.color === "text-orange-400" ? "#F97316" : active.color === "text-emerald-400" ? "#10B981" : active.color === "text-yellow-400" ? "#EAB308" : "#94A3B8"}40, transparent)`,
-                }}
-              />
+        {/* Matrix Tab Selector */}
+        <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
+          {personasData.map((p) => {
+            const isSelected = selectedId === p.id;
+            return (
+              <button
+                key={p.id}
+                onClick={() => setSelectedId(p.id)}
+                className={`flex items-center gap-2.5 px-5 py-3 rounded-xl border text-sm font-semibold transition-all duration-300 shadow-sm cursor-pointer select-none ${
+                  isSelected
+                    ? `${p.accentColor} shadow-md`
+                    : "border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${p.dotColor}`} />
+                {p.role}
+              </button>
+            );
+          })}
+        </div>
 
-              <div className="grid md:grid-cols-2 gap-8">
-                {/* Left – Content */}
-                <div>
-                  <div className="flex items-center gap-3 mb-4">
-                    <div
-                      className={`flex items-center justify-center w-12 h-12 rounded-xl ${active.accentBg} border border-slate-700/40`}
-                    >
-                      {active.icon}
+        {/* Dynamic Display Panel */}
+        <div className="max-w-4xl mx-auto">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={selectedId}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="p-6 sm:p-8 rounded-2xl bg-card border border-border/50 shadow-[0_8px_30px_rgba(0,0,0,0.03)] dark:shadow-[0_16px_50px_rgba(0,0,0,0.25)]"
+            >
+              <div className="grid md:grid-cols-12 gap-8 items-start">
+                
+                {/* Left side: Persona Details */}
+                <div className="md:col-span-7 flex flex-col justify-between h-full">
+                  <div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-muted text-foreground">
+                        {currentPersona.icon}
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-bold text-foreground font-sans">{currentPersona.role}</h4>
+                        <span className="text-[10px] font-mono text-muted-foreground tracking-wider uppercase font-semibold">
+                          RBAC Role Profile
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <p
-                        className={`text-sm font-semibold ${active.color} uppercase tracking-wider`}
-                      >
-                        {active.role}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        Role-based persona
-                      </p>
-                    </div>
+
+                    <h3 className="text-xl font-extrabold text-foreground tracking-tight mb-3 font-display">
+                      {currentPersona.headline}
+                    </h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed mb-6 font-sans">
+                      {currentPersona.description}
+                    </p>
                   </div>
 
-                  <h3 className="text-2xl font-bold text-white mb-3">
-                    {active.headline}
-                  </h3>
-                  <p className="text-slate-400 leading-relaxed mb-6">
-                    {active.description}
-                  </p>
-
-                  <Link
-                    href="/login"
-                    id={`persona-login-${active.id}`}
-                    className="group inline-flex items-center gap-2 px-6 py-3 font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-orange-500 rounded-xl transition-all duration-500 hover:shadow-lg hover:shadow-blue-500/20"
-                  >
-                    Login as {active.role}
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </Link>
-                </div>
-
-                {/* Right – Capabilities */}
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
-                    Key Capabilities
-                  </p>
-                  {active.capabilities.map((cap, i) => (
-                    <motion.div
-                      key={cap}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.1, duration: 0.4 }}
-                      className="flex items-start gap-3 p-3 rounded-xl bg-slate-800/30 border border-slate-700/30"
+                  <div className="flex flex-wrap gap-3">
+                    <Link
+                      href="/login"
+                      className="group inline-flex items-center gap-2 px-5 py-3 text-xs font-bold text-primary-foreground bg-primary rounded-lg hover:bg-primary/95 transition-all shadow-md active:scale-[0.98]"
                     >
-                      <CheckCircle2
-                        className={`w-5 h-5 ${active.color} mt-0.5 shrink-0`}
-                      />
-                      <span className="text-sm text-slate-300 font-medium">
-                        {cap}
-                      </span>
-                    </motion.div>
-                  ))}
+                      Login as {currentPersona.role}
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                    </Link>
+                  </div>
                 </div>
+
+                {/* Right side: Mock Interface Sandbox */}
+                <div className="md:col-span-5 p-5 rounded-xl bg-muted/40 border border-border/40 shadow-inner">
+                  <span className="text-[10px] font-mono font-bold tracking-wider text-muted-foreground uppercase block mb-4">
+                    Role Interface Mockup
+                  </span>
+
+                  {/* System Metrics List */}
+                  <div className="space-y-3 mb-5">
+                    {currentPersona.systemMetrics.map((m, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-3 rounded-lg bg-card border border-border/40 shadow-xs"
+                      >
+                        <span className="text-xs text-muted-foreground font-semibold font-sans">{m.label}</span>
+                        {m.isSecret ? (
+                          <span className="flex items-center gap-1 text-[11px] font-mono text-fleet-ochre font-bold bg-fleet-ochre/10 px-2 py-0.5 rounded border border-fleet-ochre/20">
+                            <EyeOff className="w-3 h-3" /> HIDDEN
+                          </span>
+                        ) : (
+                          <span className="text-xs font-bold text-foreground font-mono">{m.value}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Sandbox Interactive Action Block */}
+                  <div className="pt-4 border-t border-border/30">
+                    {selectedId === "fleet_manager" && (
+                      <div className="space-y-3">
+                        <span className="text-[11px] font-semibold text-foreground font-sans block">
+                          Active Dispatch Actions:
+                        </span>
+                        <button
+                          onClick={() => handleSimulateAction("Dispatch Trip #408")}
+                          className="w-full text-center py-2 bg-primary text-primary-foreground text-xs font-bold rounded-lg hover:bg-primary/90 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
+                        >
+                          Dispatch Cargo (max_capacity_kg Guard)
+                        </button>
+                      </div>
+                    )}
+
+                    {selectedId === "driver" && (
+                      <div className="space-y-3">
+                        <label className="text-[11px] font-semibold text-foreground font-sans block">
+                          Submit Odometer Update (km):
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            value={odometerInput}
+                            onChange={(e) => setOdometerInput(e.target.value)}
+                            className="bg-card border border-border rounded-lg px-2.5 py-1 text-xs font-mono w-full text-foreground focus:outline-none focus:border-primary shadow-xs"
+                          />
+                          <button
+                            onClick={() => handleSimulateAction(`Odometer logged at ${odometerInput} km`)}
+                            className="px-3 py-1.5 bg-foreground text-background text-xs font-bold rounded-lg hover:bg-foreground/90 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
+                          >
+                            Log
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedId === "safety_officer" && (
+                      <div className="space-y-3">
+                        <span className="text-[11px] font-semibold text-foreground font-sans block flex items-center gap-1">
+                          <AlertTriangle className="w-3.5 h-3.5 text-fleet-ochre" /> Compliance Trigger:
+                        </span>
+                        <button
+                          onClick={() => handleSimulateAction("Enforce Grounding (in_shop)")}
+                          className="w-full text-center py-2 bg-fleet-ochre text-white text-xs font-bold rounded-lg hover:bg-fleet-ochre/90 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
+                        >
+                          Ground Vehicle for License Defect
+                        </button>
+                      </div>
+                    )}
+
+                    {selectedId === "financial_analyst" && (
+                      <div className="space-y-2">
+                        <span className="text-[11px] font-semibold text-foreground font-sans block">
+                          Export Compliance Datasets:
+                        </span>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => handleSimulateAction("Export CSV logs")}
+                            className="flex items-center justify-center gap-1 py-2 border border-border/80 hover:bg-muted text-[11px] font-bold rounded-lg text-foreground transition-all cursor-pointer shadow-xs active:scale-[0.98]"
+                          >
+                            <Download className="w-3 h-3" /> CSV Export
+                          </button>
+                          <button
+                            onClick={() => handleSimulateAction("Export PDF report")}
+                            className="flex items-center justify-center gap-1 py-2 border border-border/80 hover:bg-muted text-[11px] font-bold rounded-lg text-foreground transition-all cursor-pointer shadow-xs active:scale-[0.98]"
+                          >
+                            <Download className="w-3 h-3" /> PDF Export
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+
               </div>
-            </div>
-          </motion.div>
-        </AnimatePresence>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
       </div>
     </section>
   );
