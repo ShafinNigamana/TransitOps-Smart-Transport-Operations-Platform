@@ -1,44 +1,102 @@
-import type {
-  VehicleStatus,
+import * as React from "react";
+import { Badge } from "@/components/ui/badge";
+import {
   DriverStatus,
-  TripStatus,
   MaintenanceStatus,
+  TripStatus,
+  VehicleStatus,
 } from "@/types/database";
 
-type AnyStatus = VehicleStatus | DriverStatus | TripStatus | MaintenanceStatus;
+type StatusValue =
+  | VehicleStatus
+  | DriverStatus
+  | TripStatus
+  | MaintenanceStatus
+  | string;
 
-const statusStyles: Record<string, { bg: string; text: string; label: string }> = {
-  // Vehicle + Driver shared
-  available: { bg: "bg-emerald-500/10", text: "text-emerald-500", label: "Available" },
-  on_trip: { bg: "bg-blue-500/10", text: "text-blue-500", label: "On Trip" },
-  // Vehicle-specific
-  in_shop: { bg: "bg-amber-500/10", text: "text-amber-500", label: "In Shop" },
-  retired: { bg: "bg-zinc-500/10", text: "text-zinc-400", label: "Retired" },
-  // Driver-specific
-  off_duty: { bg: "bg-zinc-500/10", text: "text-zinc-400", label: "Off Duty" },
-  suspended: { bg: "bg-red-500/10", text: "text-red-500", label: "Suspended" },
-  // Trip-specific
-  draft: { bg: "bg-zinc-500/10", text: "text-zinc-400", label: "Draft" },
-  dispatched: { bg: "bg-blue-500/10", text: "text-blue-500", label: "Dispatched" },
-  completed: { bg: "bg-emerald-500/10", text: "text-emerald-500", label: "Completed" },
-  cancelled: { bg: "bg-red-500/10", text: "text-red-500", label: "Cancelled" },
-  // Maintenance-specific
-  open: { bg: "bg-amber-500/10", text: "text-amber-500", label: "Open" },
-  closed: { bg: "bg-emerald-500/10", text: "text-emerald-500", label: "Closed" },
-};
+interface StatusBadgeProps {
+  status: StatusValue;
+  className?: string;
+}
 
-export function StatusBadge({ status }: { status: AnyStatus }) {
-  const style = statusStyles[status] ?? {
-    bg: "bg-zinc-500/10",
-    text: "text-zinc-400",
-    label: status,
-  };
+export function StatusBadge({ status, className }: StatusBadgeProps) {
+  const normalized = status.toLowerCase();
 
+  // Amber variants (open, in_shop)
+  if (normalized === "open" || normalized === "in_shop") {
+    const label = normalized === "in_shop" ? "In Shop" : "Open";
+    return (
+      <Badge variant="warning" className={className}>
+        <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+        {label}
+      </Badge>
+    );
+  }
+
+  // Green variants (completed, closed, available)
+  if (
+    normalized === "completed" ||
+    normalized === "closed" ||
+    normalized === "available"
+  ) {
+    const label =
+      normalized === "completed"
+        ? "Completed"
+        : normalized === "closed"
+        ? "Closed"
+        : "Available";
+    return (
+      <Badge variant="success" className={className}>
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+        {label}
+      </Badge>
+    );
+  }
+
+  // Blue variants (dispatched, on_trip)
+  if (normalized === "dispatched" || normalized === "on_trip") {
+    const label = normalized === "on_trip" ? "On Trip" : "Dispatched";
+    return (
+      <Badge variant="info" className={className}>
+        <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+        {label}
+      </Badge>
+    );
+  }
+
+  // Red variants (cancelled, suspended)
+  if (normalized === "cancelled" || normalized === "suspended") {
+    const label = normalized === "suspended" ? "Suspended" : "Cancelled";
+    return (
+      <Badge variant="danger" className={className}>
+        <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+        {label}
+      </Badge>
+    );
+  }
+
+  // Gray variants (draft, retired, off_duty)
+  if (
+    normalized === "draft" ||
+    normalized === "retired" ||
+    normalized === "off_duty"
+  ) {
+    const label =
+      normalized === "off_duty"
+        ? "Off Duty"
+        : normalized.charAt(0).toUpperCase() + normalized.slice(1);
+    return (
+      <Badge variant="secondary" className={className}>
+        <span className="h-1.5 w-1.5 rounded-full bg-neutral-400" />
+        {label}
+      </Badge>
+    );
+  }
+
+  // Fallback
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${style.bg} ${style.text}`}
-    >
-      {style.label}
-    </span>
+    <Badge variant="secondary" className={className}>
+      {status}
+    </Badge>
   );
 }

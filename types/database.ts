@@ -23,10 +23,10 @@ export interface Vehicle {
   max_load_capacity_kg: number;
   odometer_km: number;
   acquisition_cost: number;
-  region: string | null;
+  region?: string | null;
   status: VehicleStatus;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Driver {
@@ -38,65 +38,72 @@ export interface Driver {
   contact_number: string;
   safety_score: number;
   status: DriverStatus;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Trip {
   id: string;
+  trip_code?: string;
   source: string;
   destination: string;
   vehicle_id: string;
+  vehicle?: Vehicle;
   driver_id: string;
+  driver?: Driver;
   cargo_weight_kg: number;
   planned_distance_km: number;
-  actual_distance_km: number | null;
-  fuel_consumed_l: number | null;
+  actual_distance_km?: number | null;
+  fuel_consumed_l?: number | null;
   status: TripStatus;
-  dispatched_at: string | null;
-  completed_at: string | null;
-  cancelled_at: string | null;
-  created_by: string | null;
+  dispatched_at?: string | null;
+  completed_at?: string | null;
+  cancelled_at?: string | null;
+  created_by?: string | null;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 export interface Maintenance {
   id: string;
   vehicle_id: string;
+  vehicle?: Vehicle;
   maintenance_type: string;
   description: string | null;
   cost: number;
   status: MaintenanceStatus;
   opened_at: string;
-  closed_at: string | null;
-  created_by: string | null;
-  created_at: string;
-  updated_at: string;
+  closed_at?: string | null;
+  created_by?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
-export interface FuelLog {
-  id: string;
+// Alias for frontend compatibility with Rudra's components
+export type MaintenanceRecord = Maintenance;
+
+// Create / update inputs matching SYSTEM_ARCHITECTURE.md & frontend expectations
+export type CreateTripInput = {
+  source: string;
+  destination: string;
+  cargo_weight_kg: number;
+  planned_distance_km: number;
   vehicle_id: string;
-  trip_id: string | null;
-  liters: number;
-  cost: number;
-  log_date: string;
-  created_by: string | null;
-  created_at: string;
-}
+  driver_id: string;
+};
 
-export interface Expense {
-  id: string;
-  vehicle_id: string | null;
-  trip_id: string | null;
-  category: string;
-  amount: number;
-  expense_date: string;
-  notes: string | null;
-  created_by: string | null;
-  created_at: string;
-}
+export type CompleteTripInput = {
+  trip_id: string;
+  actual_distance_km: number;
+  fuel_consumed_l: number;
+};
+
+export type CreateMaintenanceInput = {
+  vehicle_id: string;
+  maintenance_type: string;
+  description: string;
+  cost: number;
+};
 
 // Server Action discriminated result type per SYSTEM_ARCHITECTURE.md §3
 export type ActionResult<T> =
