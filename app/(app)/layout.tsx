@@ -4,7 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
-import { logout } from "@/lib/actions/auth";
+import { logout, demoLogin } from "@/lib/actions/auth";
+import { createClient } from "@/lib/supabase/client";
 import {
   LayoutDashboard,
   Truck,
@@ -46,8 +47,44 @@ export default function AppLayout({
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [userRole, setUserRole] = React.useState<string>("fleet_manager");
+  const [fullName, setFullName] = React.useState<string>("Operator");
+  const [switching, setSwitching] = React.useState(false);
 
-  // Simulated Roles for RBAC switching
+  // Load user profile on mount
+  React.useEffect(() => {
+    async function loadProfile() {
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (user) {
+          const metaRole = user.user_metadata?.role;
+          const metaName = user.user_metadata?.full_name;
+
+          if (metaRole) setUserRole(metaRole);
+          if (metaName) setFullName(metaName);
+
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role, full_name")
+            .eq("id", user.id)
+            .single();
+
+          if (profile) {
+            if (profile.role) setUserRole(profile.role);
+            if (profile.full_name) setFullName(profile.full_name);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load user profile:", err);
+      }
+    }
+    loadProfile();
+  }, []);
+
+  // Roles for RBAC switching
   const roles = [
     { value: "fleet_manager", label: "Fleet Manager" },
     { value: "driver", label: "Driver" },
@@ -55,9 +92,16 @@ export default function AppLayout({
     { value: "financial_analyst", label: "Financial Analyst" },
   ];
 
-  const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setUserRole(e.target.value);
-    // In a real app we would update the profile or cookie here.
+  const handleRoleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const targetRole = e.target.value;
+    setSwitching(true);
+    try {
+      await demoLogin(targetRole);
+    } catch (err) {
+      console.error("Failed to switch persona:", err);
+    } finally {
+      setSwitching(false);
+    }
   };
 
   return (
@@ -83,7 +127,9 @@ export default function AppLayout({
             className="flex items-center gap-2 font-bold text-xl tracking-tight text-foreground cursor-pointer"
           >
             <Shield className="h-6 w-6 text-primary" />
-            <span>Transit<span className="text-blue-500">Ops</span></span>
+            <span>
+              Transit<span className="text-blue-500">Ops</span>
+            </span>
           </Link>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -124,10 +170,10 @@ export default function AppLayout({
               <User className="h-4 w-4 text-foreground" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold truncate text-foreground">
-                Alex Operator
+              <p className="text-sm font-semibold truncate text-foreground capitalize">
+                {fullName}
               </p>
-              <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-500">
+              <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-500 capitalize">
                 {userRole.replace("_", " ")}
               </span>
             </div>
@@ -162,11 +208,14 @@ export default function AppLayout({
           <div className="flex items-center gap-4">
             {/* Persona Switcher for Hackathon Testing */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground hidden sm:inline-block">Persona:</span>
+              <span className="text-xs text-muted-foreground hidden sm:inline-block">
+                Persona:
+              </span>
               <select
                 value={userRole}
                 onChange={handleRoleChange}
-                className="text-xs bg-secondary border border-border text-foreground rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
+                disabled={switching}
+                className="text-xs bg-secondary border border-border text-foreground rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer disabled:opacity-50"
               >
                 {roles.map((r) => (
                   <option key={r.value} value={r.value}>
