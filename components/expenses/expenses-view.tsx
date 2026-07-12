@@ -1,0 +1,207 @@
+"use client";
+
+import * as React from "react";
+import { Plus, Search, DollarSign, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { ExpenseForm } from "@/components/expenses/expense-form";
+import type { Expense, Vehicle, CreateExpenseInput } from "@/types/database";
+import { createExpense } from "@/lib/actions/fuel-and-expenses";
+import { formatCurrency, formatDate } from "@/lib/utils";
+
+interface ExpensesViewProps {
+  initialExpenses: Expense[];
+  initialVehicles: Vehicle[];
+}
+
+const CATEGORY_VARIANT: Record<string, "warning" | "danger" | "info" | "secondary" | "success"> = {
+  Toll: "info",
+  Fine: "danger",
+  Parking: "warning",
+  Insurance: "success",
+  Licensing: "info",
+  Cleaning: "secondary",
+  Misc: "secondary",
+};
+
+export function ExpensesView({
+  initialExpenses,
+  initialVehicles,
+}: ExpensesViewProps) {
+  const [expenses, setExpenses] = React.useState<Expense[]>(initialExpenses);
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [isLogOpen, setIsLogOpen] = React.useState(false);
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+  const [isPending, startTransition] = React.useTransition();
+
+  React.useEffect(() => {
+    setExpenses(initialExpenses);
+  }, [initialExpenses]);
+
+  const handleLogExpense = (input: CreateExpenseInput) => {
+    setErrorMessage(null);
+    startTransition(async () => {
+      const res = await createExpense(input);
+      if (res.success) {
+        setIsLogOpen(false);
+      } else {
+        setErrorMessage(res.error.message);
+      }
+    });
+  };
+
+  const filteredExpenses = expenses.filter((exp) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      exp.category?.toLowerCase().includes(q) ||
+      exp.vehicle?.name?.toLowerCase().includes(q) ||
+      exp.vehicle?.registration_number?.toLowerCase().includes(q) ||
+      exp.notes?.toLowerCase().includes(q) ||
+      String(exp.amount).includes(q)
+    );
+  });
+
+  return (
+    <div className="space-y-6">
+      {errorMessage && (
+        <div className="flex items-center justify-between rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300">
+          <span>{errorMessage}</span>
+          <button
+            onClick={() => setErrorMessage(null)}
+            className="text-rose-500 hover:text-rose-700 dark:hover:text-rose-200 cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Header & Log Expense Button */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <div className="h-9 w-9 rounded-xl bg-emerald-500/15 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+              <DollarSign className="h-5 w-5" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
+              Expenses
+              {isPending && (
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              )}
+            </h1>
+          </div>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+            Track tolls, fines, parking, and other fleet operating expenses.
+          </p>
+        </div>
+
+        <Button
+          onClick={() => setIsLogOpen(true)}
+          className="shrink-0 font-semibold shadow-sm cursor-pointer"
+          disabled={isPending}
+        >
+          <Plus className="h-4 w-4 mr-1.5" />
+          Log Expense
+        </Button>
+      </div>
+
+      {/* Search Filter */}
+      <div className="relative w-full sm:w-72">
+        <Search className="absolute left-3 top-2.5 h-4 w-4 text-neutral-400" />
+        <Input
+          placeholder="Search category, vehicle, notes..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+
+      {/* Expenses Table */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Category</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead className="hidden md:table-cell">Vehicle</TableHead>
+              <TableHead className="hidden lg:table-cell">Notes</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredExpenses.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={5}
+                  className="text-center py-12 text-muted-foreground"
+                >
+                  <DollarSign className="h-8 w-8 mx-auto mb-3 opacity-30" />
+                  <p className="font-semibold">No expenses recorded</p>
+                  <p className="text-xs mt-1">
+                    Click &quot;Log Expense&quot; to add an operational cost.
+                  </p>
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredExpenses.map((exp) => (
+                <TableRow key={exp.id} className="cursor-pointer">
+                  <TableCell>
+                    <Badge
+                      variant={
+                        CATEGORY_VARIANT[exp.category] ?? "secondary"
+                      }
+                    >
+                      {exp.category}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="font-semibold text-sm">
+                    {formatCurrency(Number(exp.amount))}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                    {formatDate(exp.expense_date)}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {exp.vehicle ? (
+                      <div>
+                        <p className="text-sm font-medium">
+                          {exp.vehicle.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {exp.vehicle.registration_number}
+                        </p>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">
+                        Fleet-wide
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell text-sm text-muted-foreground max-w-[200px] truncate">
+                    {exp.notes || "—"}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Log Expense Dialog */}
+      <ExpenseForm
+        open={isLogOpen}
+        onOpenChange={setIsLogOpen}
+        vehicles={initialVehicles}
+        onSubmit={handleLogExpense}
+      />
+    </div>
+  );
+}

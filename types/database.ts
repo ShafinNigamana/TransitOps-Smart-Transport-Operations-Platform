@@ -82,6 +82,33 @@ export interface Maintenance {
 // Alias for frontend compatibility with Rudra's components
 export type MaintenanceRecord = Maintenance;
 
+export interface FuelLog {
+  id: string;
+  vehicle_id: string;
+  vehicle?: Vehicle;
+  trip_id?: string | null;
+  trip?: Trip;
+  liters: number;
+  cost: number;
+  log_date: string;
+  created_by?: string | null;
+  created_at?: string;
+}
+
+export interface Expense {
+  id: string;
+  vehicle_id?: string | null;
+  vehicle?: Vehicle;
+  trip_id?: string | null;
+  trip?: Trip;
+  category: string;
+  amount: number;
+  expense_date: string;
+  notes?: string | null;
+  created_by?: string | null;
+  created_at?: string;
+}
+
 // Create / update inputs matching SYSTEM_ARCHITECTURE.md & frontend expectations
 export type CreateTripInput = {
   source: string;
@@ -103,6 +130,23 @@ export type CreateMaintenanceInput = {
   maintenance_type: string;
   description: string;
   cost: number;
+};
+
+export type CreateFuelLogInput = {
+  vehicle_id: string;
+  trip_id?: string;
+  liters: number;
+  cost: number;
+  log_date: string;
+};
+
+export type CreateExpenseInput = {
+  vehicle_id?: string;
+  trip_id?: string;
+  category: string;
+  amount: number;
+  expense_date: string;
+  notes?: string;
 };
 
 // Server Action discriminated result type per SYSTEM_ARCHITECTURE.md §3
