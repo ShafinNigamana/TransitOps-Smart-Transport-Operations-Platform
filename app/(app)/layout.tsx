@@ -120,7 +120,7 @@ export default function AppLayout({
               width={140}
               height={35}
               priority
-              className="h-10 w-auto"
+              className="h-8 w-auto"
             />
           </Link>
           <button
